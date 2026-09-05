@@ -132,7 +132,7 @@ jobs:
             echo "::error::a materialized flag literal was found in the image"; exit 1
           fi
       - name: Trivy image scan (fail on HIGH/CRITICAL, fixed only)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.29.0
         with:
           image-ref: ${{ steps.img.outputs.image }}
           severity: HIGH,CRITICAL
