@@ -1,0 +1,93 @@
+/* SPDX-License-Identifier: MIT
+   Design tokens — matrix-dark, no light mode. Source: docs/ux-hub-spec.json. */
+:root {
+  /* Surfaces */
+  --bg: #05070a;
+  --bg-elevated: #0b0f14;
+  --bg-sunken: #030507;
+  --surface: #0f141b;
+  --surface-hover: #141b24;
+  --border: rgba(0, 255, 156, 0.08);
+  --border-strong: rgba(0, 255, 156, 0.16);
+  --border-focus: rgba(0, 255, 156, 0.48);
+
+  /* Text */
+  --fg: #e6f7ee;
+  --fg-muted: #8a9ba2;
+  --fg-subtle: #4a5b62;
+  --fg-inverse: #05070a;
+
+  /* Signal colors */
+  --accent: #00ff9c;
+  --accent-hover: #33ffb4;
+  --accent-press: #00cc7d;
+  --accent-wash: rgba(0, 255, 156, 0.12);
+  --matrix-glow: rgba(0, 255, 156, 0.35);
+  --matrix-rain: #00ff41;
+
+  --danger: #ffb020;
+  --danger-wash: rgba(255, 176, 32, 0.14);
+  --info: #22d3ee;
+  --info-wash: rgba(34, 211, 238, 0.12);
+  --success: #00ff9c;
+  --error: #ff4d6d;
+
+  /* Tier colors */
+  --tier-apprentice: #8a9ba2;
+  --tier-practitioner: #22d3ee;
+  --tier-expert: #ffb020;
+  --tier-elite: #ff3ea5;
+
+  /* Radii */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  /* Spacing (4-based) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+  --space-10: 128px;
+
+  /* Type scale */
+  --fs-xs: 11px;
+  --fs-sm: 13px;
+  --fs-base: 15px;
+  --fs-md: 17px;
+  --fs-lg: 20px;
+  --fs-xl: 28px;
+  --fs-2xl: 40px;
+  --fs-3xl: 64px;
+  --lh-tight: 1.15;
+  --lh-snug: 1.35;
+  --lh-normal: 1.55;
+  --tracking-tight: -0.02em;
+  --tracking-body: -0.005em;
+  --tracking-wide: 0.06em;
+
+  /* Shadows / glow */
+  --shadow-2: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px -8px rgba(0, 0, 0, 0.6);
+  --shadow-glow-accent:
+    0 0 0 1px var(--border-focus), 0 0 24px rgba(0, 255, 156, 0.25), 0 0 60px rgba(0, 255, 156, 0.1);
+  --shadow-tile-hover: 0 12px 32px -12px rgba(0, 255, 156, 0.25), 0 0 0 1px var(--border-strong);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 120ms;
+  --dur-base: 220ms;
+  --dur-slow: 400ms;
+
+  /* Z-index */
+  --z-rain: 0;
+  --z-content: 10;
+  --z-nav: 30;
+}

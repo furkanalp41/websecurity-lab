@@ -1,0 +1,36 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# builds
+.next/
+out/
+dist/
+build/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+
+# generated data artifacts (produced by scripts/build-*.ts in CI)
+data/*.generated.json
+data/*.generated.json.sha256
+
+# python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+
+# env / secrets
+.env
+.env.*
+!.env.example
+
+# local labctl runtime state
+~/.labctl-sessions
+.labctl-sessions/
+
+# logs / os
+*.log
+.DS_Store
+coverage/

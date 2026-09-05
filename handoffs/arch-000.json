@@ -1,0 +1,66 @@
+{
+  "type": "batch-review-request",
+  "batch_id": "arch-000",
+  "branch": "build/arch-000",
+  "working_dir": "/home/vlad/websecurity-lab",
+  "pr_url": "https://github.com/furkanalp41/websecurity-lab/pull/1",
+  "base_commit": "7678a7144553815111783a12e5b1883f87ed73b8",
+  "head_commit": "405fa79a8d0021c9a96e8f7b5c9e857f8f936a02",
+  "files_touched": [
+    "pnpm-workspace.yaml",
+    "package.json",
+    "pnpm-lock.yaml",
+    "tsconfig.base.json",
+    "CLAUDE.md",
+    "LICENSE",
+    "NOTICES.md",
+    "ESCALATIONS.md",
+    "CHANGELOG.md",
+    "README.md",
+    ".nvmrc",
+    ".npmrc",
+    ".gitignore",
+    ".gitattributes",
+    ".dockerignore",
+    ".editorconfig",
+    ".prettierrc.json",
+    ".prettierignore",
+    "data/catalog.json",
+    "docs/**",
+    "docs/reviews/**",
+    "hub/**",
+    "labctl/**",
+    "packages/**",
+    "scripts/**",
+    "labs/sqli/sqli-login-bypass-basic/**",
+    ".github/workflows/ci.yml"
+  ],
+  "labs_included": [
+    {
+      "id": "sqli-login-bypass-basic",
+      "difficulty": "apprentice",
+      "expected_solve_seconds": 60,
+      "measured_solve_seconds": 0.13
+    }
+  ],
+  "self_test_evidence": {
+    "ci_run": "https://github.com/furkanalp41/websecurity-lab/actions/runs/33987414631",
+    "ci_result": "success (7/7 jobs green: bootstrap, secret-scan, discover-labs, lint-typecheck, schema-validate, hub-build, docker-lab-matrix)",
+    "solve_sh_timings_seconds": { "sqli-login-bypass-basic": 0.13 },
+    "docker_inspect_output": "User=app Privileged=false ReadonlyRootfs=true CapDrop=[ALL] NetworkMode=websec-lab_sqli-login-bypass-basic_net SecurityOpt=[no-new-privileges:true] PidsLimit=100 Memory=536870912",
+    "meta_schema_validation": "pass",
+    "pii_scan": "clean (gitleaks: no leaks found, verified locally and in CI secret-scan)",
+    "catalog_lab_count": 541,
+    "template_lab_exploit_seconds": 0.13,
+    "trivy": "0 HIGH/CRITICAL (fixed) on the sample image; note: alpine 3.20 flagged near-EOL by trivy DB — base-bump is a suggested follow-up",
+    "image_size_mb": 27.4
+  },
+  "questions": [
+    "Confirm: the 20 category directory names match data/catalog.json exactly (sqli, xss, ...). Acceptable as-is for P1, or rename any before track authoring?",
+    "Confirm: a 96x96 static PNG rabbit placeholder is acceptable for the P0/P1 hub shell, with the real .riv art scheduled for polish-final? (P0 ships no rabbit asset yet — matrix shell only.)",
+    "Confirm: is labs/sqli/sqli-login-bypass-basic acceptable as the labctl new-lab template exemplar?",
+    "Decision needed: two duplicate slugs exist in the authoritative catalog (graphql-batch-auth-bypass across graphql-api-owasp-top10/ctftime-web; nginx-alias-off-by-slash across smuggling-cache-desync/command-injection-upload-fileread). How should we unique them (category-prefix? rename?) via charter update before those tracks ship?",
+    "Flag: docs/ux-hub-spec.json specifies daily streaks / flame / default leaderboards, which PROMPT-1 §13 forbids. I deferred all of it (not in P0). Confirm non-goals win, or open an escalation for P2 gamification?"
+  ],
+  "deadline": "2026-09-07T18:00:00Z"
+}

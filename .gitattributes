@@ -1,0 +1,9 @@
+* text=auto eol=lf
+# Scripts and container entrypoints must always be LF (WSL2 safety).
+*.sh        text eol=lf
+*.py        text eol=lf
+Dockerfile  text eol=lf
+entrypoint.sh text eol=lf
+*.png binary
+*.riv binary
+*.woff2 binary
