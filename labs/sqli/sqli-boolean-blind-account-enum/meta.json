@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "sqli-boolean-blind-account-enum",
+  "title": "Boolean-Blind Extraction via a Reset Form Oracle",
+  "track": "sqli",
+  "difficulty": "practitioner",
+  "estimated_minutes": 30,
+  "max_lifetime_minutes": 45,
+  "learning_objectives": [
+    "Spot a boolean oracle hiding in a response header when the body is uniform",
+    "Turn account enumeration into a general truth-value oracle via SQL injection",
+    "Extract a secret character-by-character with a binary search over an ASCII-sorted charset",
+    "Explain why a constant response body does not make an endpoint enumeration-safe"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-89", "CWE-204"],
+  "prerequisites": ["sqli-login-bypass-basic", "sqli-order-by-numeric"],
+  "flag_hint": "Recover the 32-char prefix of admin.password_hash through the blind oracle, then POST /solve {\"prefix\":\"...\"} to receive the flag read from $FLAG_PATH.",
+  "tech_stack": ["Python 3.12", "FastAPI 0.115", "uvicorn", "asyncpg", "PostgreSQL 16"],
+  "tags": ["sqli", "blind-sqli", "boolean-based", "account-enumeration", "postgres", "cwe-89"],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/forgot" },
+  "inspired_by": "PortSwigger 'Blind SQL injection with conditional responses' + the username-enumeration-via-response-difference report family"
+}

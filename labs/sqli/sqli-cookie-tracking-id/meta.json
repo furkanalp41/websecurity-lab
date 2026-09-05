@@ -1,0 +1,25 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "sqli-cookie-tracking-id",
+  "title": "SQL Injection Hidden in a Tracking Cookie",
+  "track": "sqli",
+  "difficulty": "apprentice",
+  "estimated_minutes": 25,
+  "max_lifetime_minutes": 30,
+  "learning_objectives": [
+    "Recognise that a SQL injection sink can live in a Cookie header, not just the URL",
+    "Match a UNION SELECT's column count to the original query in SQLite",
+    "Exfiltrate a secret column (internal_config.license_key) and use it to unlock a gated endpoint"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-89"],
+  "prerequisites": ["sqli-login-bypass-basic"],
+  "flag_hint": "/solve reads the flag file and returns it in a text/plain body when ?license matches the seeded internal_config.license_key; otherwise it answers HTTP 402.",
+  "tech_stack": ["Go 1.23", "chi router v5", "SQLite 3 (mattn/go-sqlite3)", "Alpine 3.20"],
+  "tags": ["sqli", "union-based", "cookie-injection", "sqlite", "cwe-89"],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "PortSwigger 'SQL injection vulnerability in a cookie' + UNION-based extraction patterns"
+}
