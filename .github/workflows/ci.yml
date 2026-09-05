@@ -126,7 +126,9 @@ jobs:
       - name: Resolve image + enforce size cap (<300MB)
         id: img
         run: |
-          img=$(docker compose -f "${{ matrix.lab }}/docker-compose.yml" config --images | head -1)
+          # Scan/size the lab's OWN built image (websec-lab/*), never the pulled
+          # upstream DB service images (postgres/mysql) which we do not build.
+          img=$(docker compose -f "${{ matrix.lab }}/docker-compose.yml" config --images | grep -E '^websec-lab/' | head -1)
           echo "image=$img" >> "$GITHUB_OUTPUT"
           bytes=$(docker image inspect "$img" --format '{{.Size}}')
           mb=$(( bytes / 1024 / 1024 ))

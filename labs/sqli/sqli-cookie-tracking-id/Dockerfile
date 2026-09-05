@@ -3,7 +3,7 @@
 # fully static binary on a minimal non-root alpine. Digest-pinned bases; no baked
 # flag (entrypoint.sh writes the per-container flag at runtime).
 
-FROM golang:1.23-alpine@sha256:383395b794dffa5b53012a212365d40c8e37109a626ca30d6151c8348d380b5f AS build
+FROM golang:1.24-alpine@sha256:8bee1901f1e530bfb4a7850aa7a479d17ae3a18beb6e09064ed54cfd245b7191 AS build
 # build-base supplies gcc + musl-dev so cgo (mattn/go-sqlite3) can compile.
 RUN apk add --no-cache build-base
 ENV CGO_ENABLED=1 \
