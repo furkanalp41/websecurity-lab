@@ -1,0 +1,57 @@
+# SPDX-License-Identifier: MIT
+name: websec-lab-sqli-login-bypass-basic
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: websec-lab/sqli-login-bypass-basic:dev
+    environment:
+      LAB_USER_SECRET: ${LAB_USER_SECRET:?LAB_USER_SECRET is required}
+      FLAG_PATH: /var/lib/lab/flag.txt
+    # labctl rewrites this to 127.0.0.1:<allocated>:8080 at launch; :0 = ephemeral for local/CI.
+    ports:
+      - '127.0.0.1:${LAB_HOST_PORT:-0}:8080'
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+      - /var/lib/lab:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
+    pids_limit: 100
+    ulimits:
+      nofile:
+        soft: 1024
+        hard: 2048
+      nproc:
+        soft: 512
+        hard: 1024
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -q -O - http://127.0.0.1:8080/health >/dev/null 2>&1 || exit 1']
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+    networks:
+      - labnet
+
+networks:
+  labnet:
+    name: websec-lab_sqli-login-bypass-basic_net
+    driver: bridge
+    # Dedicated per-lab bridge isolates this lab from every other lab. Not
+    # `internal: true`: Docker disables host port publishing on internal
+    # networks, and the learner reaches the lab via its published 127.0.0.1
+    # port. This lab makes no outbound requests.
+    internal: false

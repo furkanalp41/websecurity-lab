@@ -1,0 +1,13 @@
+node_modules
+.next
+out
+dist
+build
+.turbo
+pnpm-lock.yaml
+data/catalog.json
+data/*.generated.json
+docs/architecture.json
+docs/collab-protocol.json
+docs/ux-hub-spec.json
+docs/reviews

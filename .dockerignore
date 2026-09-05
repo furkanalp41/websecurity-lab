@@ -1,0 +1,8 @@
+# Template for per-lab build contexts (each lab also ships its own).
+.git
+.env*
+**/.aws
+**/.ssh
+node_modules
+__pycache__
+.pytest_cache

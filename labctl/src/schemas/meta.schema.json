@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://websec-lab.dev/schemas/meta.schema.json",
+  "title": "websec-lab lab meta.json (v1.0.0)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "title",
+    "track",
+    "difficulty",
+    "estimated_minutes",
+    "learning_objectives",
+    "owasp_categories",
+    "cwe_ids",
+    "prerequisites",
+    "flag_hint",
+    "tech_stack"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schema_version": { "const": "1.0.0" },
+    "id": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+    "title": { "type": "string", "minLength": 8, "maxLength": 80 },
+    "track": {
+      "enum": [
+        "sqli",
+        "xss",
+        "auth-oauth-jwt-saml",
+        "ssrf",
+        "idor-bola-access-control",
+        "smuggling-cache-desync",
+        "deserialization",
+        "ssti-csti",
+        "race-and-logic",
+        "xxe-xml-xslt-xpath",
+        "command-injection-upload-fileread",
+        "prototype-pollution",
+        "graphql-api-owasp-top10",
+        "client-side-and-browser-attacks",
+        "crypto-in-web",
+        "modern-and-misc",
+        "hackerone-2024-2026",
+        "yeswehack-intigriti-2024-2026",
+        "ctftime-web-2024-2026",
+        "cve-web-2024-2026"
+      ]
+    },
+    "difficulty": { "enum": ["apprentice", "practitioner", "expert", "elite"] },
+    "estimated_minutes": { "type": "integer", "minimum": 5, "maximum": 240 },
+    "max_lifetime_minutes": { "type": "integer", "minimum": 5, "maximum": 120 },
+    "learning_objectives": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 6,
+      "items": { "type": "string", "minLength": 3 }
+    },
+    "owasp_categories": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "pattern": "^(A[0-9]{2}:2021|API[0-9]{1,2}:2023)-" }
+    },
+    "cwe_ids": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "pattern": "^CWE-[0-9]+$" }
+    },
+    "prerequisites": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" }
+    },
+    "flag_hint": { "type": "string", "minLength": 8 },
+    "tech_stack": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "risk": { "enum": ["low", "elevated"] },
+    "elevated_caps": { "type": "array", "items": { "type": "string" } },
+    "authors": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+    "exposed_service": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["container_port", "protocol"],
+      "properties": {
+        "container_port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "protocol": { "enum": ["http", "tcp"] },
+        "http_path": { "type": "string" }
+      }
+    },
+    "inspired_by": { "type": "string" },
+    "cve_references": { "type": "array", "items": { "type": "string" } },
+    "reference_solution_url": { "type": "string" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "risk": { "const": "elevated" } }, "required": ["risk"] },
+      "then": {
+        "required": ["elevated_caps"],
+        "properties": { "elevated_caps": { "minItems": 1 } }
+      }
+    }
+  ]
+}

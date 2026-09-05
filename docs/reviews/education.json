@@ -1,0 +1,104 @@
+{
+  "findings": [
+    {
+      "issue": "Prerequisites are almost certainly defined by category (e.g. 'SQLi 101' unlocks 'SQLi 201') rather than by *concept dependency*. A 200-lab tree built this way inevitably has dead-ends: learners hit a lab that needs a concept (HTTP smuggling requires connection reuse; NoSQL injection requires JSON body understanding; SSRF requires cloud metadata trivia) that no earlier lab actually teaches. The tree looks coherent from the top but fails at execution.",
+      "severity": "critical",
+      "recommendation": "Build an explicit *concept DAG* separate from the lab list. Each lab declares the concepts it teaches and the concepts it consumes; a linter refuses to publish a lab whose consumed concepts are not produced by an ancestor. Publish the DAG as a visible skill map so learners see WHY the order exists. Do a full graph traversal from 'zero knowledge' to every terminal lab and prove reachability before shipping."
+    },
+    {
+      "issue": "Time-to-first-flag for a genuine beginner is almost never <15 min in practice, even when platforms claim it is. The usual killer is Lab 1 quietly assuming DevTools fluency, cookie literacy, or a proxy install. A learner who has never opened Inspector is stuck before the CTF even begins, and the platform blames them (not the design) for bouncing.",
+      "severity": "critical",
+      "recommendation": "Instrument TTFF empirically with unauthenticated first-time users, not internal testers. Lab 1 must be pure browser, no CLI, no proxy, no account, flag visible in page source with a one-sentence 'right-click, View Source, look for FLAG{'. Lab 2 introduces DevTools with a screenshot walkthrough. Burp/ZAP does not appear until roughly lab 15, and even then it is optional (a hosted proxy view of the request is offered as an alternative). Measure and publish median TTFF; treat regressions as P0."
+    },
+    {
+      "issue": "SOLUTION.md written as a step-by-step walkthrough produces CTF-completers, not bug hunters. The learner memorizes 'for this lab, do X' and cannot transfer. When they hit a real program, the vuln does not announce itself with the lab's framing, and they freeze.",
+      "severity": "critical",
+      "recommendation": "Restructure every SOLUTION.md around four fixed sections: (1) 'What tipped you off' — the smell/pattern that says 'investigate here' in an unstructured target; (2) 'The class of bug' — where else this pattern appears, with 2-3 real CVE or disclosed-report links; (3) 'Why the developer wrote it this way' — the plausible business/framework reason, so the learner develops empathy-based intuition for where to hunt; (4) 'The mechanical exploit' — only now the payload. Gate publishing on all four sections being non-empty."
+    },
+    {
+      "issue": "The bug-bounty-prep track almost certainly ends when the learner finds the bug. Real bounty work ends when a triager marks the report Triaged / Resolved. Reporting, severity calibration, and dealing with N/A / Duplicate / Informational are the actual skills that separate 'CTF player' from 'bounty hunter', and they are the hardest to teach.",
+      "severity": "critical",
+      "recommendation": "Final track must include a Report Studio: learner submits a written report against a rubric derived from HackerOne / Bugcrowd triager guidance (repro steps, impact, PoC, remediation, CVSS + business impact). An adversarial-triager simulator (rules-based or LLM) responds with realistic triager objections: 'this is out of scope', 'we consider this informational', 'we already have a report on this — please provide differentiating evidence', 'your CVSS is inflated, justify AC:L'. Learner cannot mark the lab complete until a report passes the rubric. Include at least three labs where the correct outcome is 'this is not a valid finding, do not submit' — teaching restraint is teaching bounty."
+    },
+    {
+      "issue": "Streak mechanics as a motivation loop are a well-documented harm surface. A 47-day streak lost to a family emergency creates active resentment toward the platform, and the streak itself does not correlate with learning — it correlates with logging in. This is the single most extractive pattern in ed-tech gamification.",
+      "severity": "critical",
+      "recommendation": "Do not ship daily streaks. If a cadence signal is desired, use a *forgiving* weekly rhythm (e.g. 'you've studied 3 of the last 4 weeks — nice pace') with no visible counter and no loss animation. Never send a push/email whose subject line contains the phrase 'your streak'. If leadership insists on streaks, make them opt-in, defaulted off, with a documented pause mechanic and no visual penalty for breaks."
+    },
+    {
+      "issue": "Hint systems that are spoiler-first ('the payload is ...') or cost-gated ('spend 50 XP to unlock hint 3') both destroy learning. Spoiler-first removes the productive-struggle window where actual encoding happens; cost-gated creates a perverse incentive to guess-and-check rather than pay, and punishes the learners who most need help.",
+      "severity": "high",
+      "recommendation": "Every lab ships with a five-rung Socratic ladder — (1) name the vulnerability class, (2) point to the affected surface, (3) narrow to the parameter/endpoint, (4) name the technique family, (5) show a minimal payload — with no cost, no time gate, and no visible 'hints used' counter on the learner's profile. Track hint use privately and use it to identify labs whose difficulty is miscalibrated (a lab where 80% of learners need hint 4 is a broken lab, not a hard one)."
+    },
+    {
+      "issue": "XP + badges + generic 'level up' animations are extrinsic-drug motivation. Learners chase the number, disengage the moment the drip stops, and cannot articulate what they actually learned. Loot-box-adjacent design in a security-education context is particularly damaging because bounty work requires sustained, unrewarded exploration.",
+      "severity": "high",
+      "recommendation": "Anchor rewards to *demonstrable competence*, not activity. Replace generic XP with a small set of named capabilities ('You can enumerate an unknown web app', 'You can find and exploit IDOR in the wild', 'You can write a report that survives triage'), each unlocked by passing a *variant test* — 3+ novel labs testing the same concept, not the trained lab. Badges refer to specific real-world abilities ('First SSRF caught cross-origin', not 'Web Warrior Bronze'). No coin/gem/gacha metaphors anywhere."
+    },
+    {
+      "issue": "'You can now practice on public programs' is a shove off the pier, not a career pathway. First-time bounty submitters get N/A or Duplicate on their first 5-20 reports and quit permanently, blaming themselves. The platform's graduates become the platform's most disappointed alumni.",
+      "severity": "high",
+      "recommendation": "Ship a Bridge track after the labs: (a) a curated ladder of 5-10 real programs ranked by first-timer friendliness — VDP-first, then low-signal-to-noise programs, then competitive ones — with the program's known quirks documented; (b) a 'first N/A' module that shows real disclosed N/A responses and teaches emotional calibration; (c) a report-review swap with other learners (peer review before submission); (d) explicit pointers to established community spaces (LiveOverflow, InsiderPhD, Nahamsec, HackerOne CTF, program-specific Discords) with a warning that mentorship-for-pay 'coaches' on Twitter are largely scams."
+    },
+    {
+      "issue": "Recon labs on isolated targets do not simulate live recon. Real recon involves reading a scope document, respecting out-of-scope assets, distinguishing wildcard rules from acquisition inclusions, and knowing when to stop. Learners who only did 'find the subdomains of ctf.lab' will happily hit out-of-scope assets on a real program and get banned.",
+      "severity": "high",
+      "recommendation": "At least one recon lab must be structured as: 'Here is a program policy document. Here is a target surface. Enumerate the *in-scope* attack surface and produce a list.' Grade on both completeness AND on not touching out-of-scope items — hitting an out-of-scope asset in the sandbox counts as a fail with a debrief on why real programs would ban for the same action. Include labs on acquisition scope traps and wildcard subdomain interpretation."
+    },
+    {
+      "issue": "Public leaderboards default-on are toxic-by-default. They create rank anxiety, encourage sharing of solutions to farm points, and disproportionately punish learners who are slower or study part-time. The top of the leaderboard becomes a small clique that intimidates newcomers.",
+      "severity": "high",
+      "recommendation": "Global leaderboards default off. If competition is desired, offer opt-in *cohort* leaderboards (10-30 people who started around the same time) that reset regularly, with no lifetime rank. Never show 'you dropped N places'. Never send notifications about rank changes. Consider replacing rank entirely with a 'people like you also solved' peer signal that is informational, not competitive."
+    },
+    {
+      "issue": "There is likely a difficulty cliff between the introductory tier and the 'real' labs. Platforms overinvest in the on-ramp, then jump from 'find the flag in a cookie' to 'chain SSRF into RCE via cloud metadata' with nothing between. Learners who cleared the on-ramp bounce at the cliff and conclude they are 'not smart enough for security'.",
+      "severity": "high",
+      "recommendation": "Audit the difficulty curve empirically: for each lab, measure median solve time and dropout rate. Any lab whose dropout rate is >2x its neighbors is a cliff and needs a bridging lab. Aim for a smooth curve, not a step function. Publish the curve to learners as a 'difficulty topology' so they can see their progress against the shape of the terrain, not against an abstract level number."
+    },
+    {
+      "issue": "The gap between 'lab works because the vuln is planted' and 'production works and vuln is emergent' is enormous, and most platforms do not close it. Learners never see a lab where the correct answer is 'this app is not vulnerable' and never learn to distinguish signal from noise.",
+      "severity": "high",
+      "recommendation": "Introduce 'null labs' — labs that look vulnerable but are not — starting around the mid-tier, in a ratio of roughly 1-in-6. Solving a null lab means correctly documenting the investigation and concluding 'no finding'. Grade on the quality of the negative report. This inoculates against the two most damaging bounty-newcomer failure modes: submitting non-issues, and forcing-fitting a vuln pattern onto a benign behavior."
+    },
+    {
+      "issue": "No test-out / skip-ahead path punishes experienced learners (career-changers from adjacent fields, sysadmins, developers) who are forced to grind through concepts they already know. They churn early and become the loudest critics.",
+      "severity": "medium",
+      "recommendation": "Every concept node in the DAG has a challenge lab that, if passed cold, marks the concept as known and unlocks descendants. Learners can attempt the challenge lab at any time. Do not gate challenges behind a level, and do not penalize a failed challenge attempt — just show which prerequisites are missing."
+    },
+    {
+      "issue": "Badges tied to grind (login-N-days, solve-N-labs, use-N-hints) reward attendance, not competence, and are indistinguishable from an MMO's daily quests. They dilute the meaning of the badges tied to real skill.",
+      "severity": "medium",
+      "recommendation": "Delete every activity-based badge. Keep only badges that name a specific demonstrated capability with a variant-test behind it. Show the badge's *criteria* prominently on hover, so it reads as a credential ('passed 3 novel IDOR labs') rather than a trophy."
+    },
+    {
+      "issue": "The word 'ready' in 'bug-bounty-ready' is doing enormous unearned work. Real readiness includes non-technical skills — writing under adversarial review, patience with slow triage cycles, ethical judgment about disclosure, tax/1099 handling for first payouts, choosing when to walk away from a program — none of which fit a lab format and all of which are usually missing.",
+      "severity": "medium",
+      "recommendation": "Add a small non-lab curriculum module ('The Business of Bounty') covering: reading and internalizing a program policy, disclosure timelines, working with a slow/unresponsive triager without escalating publicly, safe-harbor language, why NOT to tweet your finding before it's fixed, and — for US learners — the basics of 1099-MISC income. This is unglamorous but is where post-graduation careers die."
+    },
+    {
+      "issue": "Progress visualization is likely a single linear XP bar or a level number. This flattens a genuinely branching skill space into a false single dimension and hides the shape of what the learner has actually built.",
+      "severity": "medium",
+      "recommendation": "Replace the XP bar with a rendered view of the concept DAG showing (a) concepts mastered, (b) concepts in progress, (c) frontier concepts unlocked but not attempted. Learners choose their own path through the frontier. This makes strengths and gaps legible, supports the test-out flow, and reframes progress as terrain covered rather than a number increased."
+    },
+    {
+      "issue": "Community and collaboration are usually bolted on as a Discord link, which produces either a ghost town or a toxic top-clique. Neither serves beginners, who need low-stakes peer contact most.",
+      "severity": "medium",
+      "recommendation": "Ship cohort-based study groups (opt-in, 5-15 learners at similar progress) with a shared workroom per lab where hints are peer-shared but full solutions are rate-limited. Pair-hunting on the final track (two learners on one program, splitting recon and reporting) generates the report-review skill and produces retention through relationships, which is the only motivation loop that survives platform fatigue."
+    },
+    {
+      "issue": "Any hint-cost paywall, XP-purchase, or 'premium lab' behind a subscription tier in a platform whose stated mission is 'zero to bug-bounty-ready' creates a two-track outcome that betrays the mission. The learners most in need of the platform are the ones most likely priced out.",
+      "severity": "medium",
+      "recommendation": "If monetization is required, gate value that does not affect learning progression: cosmetic profile items, priority queue on shared infrastructure, cohort/mentorship access, a paid Report Studio review by a working triager. All 200+ labs, all hints, all SOLUTION.md content, and the Bridge track must be free forever. Publish this as an explicit pledge on the pricing page."
+    },
+    {
+      "issue": "Notification and re-engagement patterns tend to migrate toward whatever the growth team can measure — daily active use — regardless of learning outcomes. Push messages like 'don't lose your streak', 'your rival just passed you', 'new lab expires in 24h' are all pedagogically negative and emotionally corrosive.",
+      "severity": "low",
+      "recommendation": "Adopt a notification style guide: (1) never manufacture urgency, (2) never reference other users' actions, (3) never guilt for inactivity, (4) always be answering a question the learner asked. Allowed: 'the lab you saved is ready', 'your report was reviewed'. Disallowed: 'you haven't practiced in 3 days'. Have a non-growth reviewer sign off on every templated notification."
+    },
+    {
+      "issue": "The word 'CTF' in the platform description will attract a competitive-play crowd whose expectations (points, races, first-blood) collide with the pedagogical mission. If unmanaged this drift steers the roadmap toward tournaments and away from teaching.",
+      "severity": "low",
+      "recommendation": "Frame the platform explicitly as a 'lab range' or 'guided range' rather than a CTF, reserving 'CTF' branding only for optional timed events that are cordoned off from the main progression. Publish a short design-principles document that explicitly disavows first-blood, timing pressure, and rank-chasing as first-class concerns, so product decisions have something to be measured against."
+    }
+  ]
+}

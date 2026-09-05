@@ -1,0 +1,25 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "sqli-login-bypass-basic",
+  "title": "Classic Login Bypass on Legacy Guestbook",
+  "track": "sqli",
+  "difficulty": "apprentice",
+  "estimated_minutes": 20,
+  "max_lifetime_minutes": 30,
+  "learning_objectives": [
+    "Recognise unparameterised SQL built by string concatenation",
+    "Terminate a string literal and comment out the rest of a query",
+    "Authenticate as a chosen user without knowing their password"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-89"],
+  "prerequisites": [],
+  "flag_hint": "The dashboard reads the flag file and renders it once your session role is admin.",
+  "tech_stack": ["Alpine 3.20", "Apache 2.4", "PHP 8.3", "SQLite 3"],
+  "tags": ["sqli", "authentication-bypass", "tautology", "cwe-89"],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/admin/login" },
+  "inspired_by": "PortSwigger 'SQL injection vulnerability allowing login bypass' + OWASP WebGoat login examples"
+}
