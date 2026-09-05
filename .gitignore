@@ -34,3 +34,6 @@ __pycache__/
 *.log
 .DS_Store
 coverage/
+
+# generated hub command-palette index
+hub/public/labs-index.json

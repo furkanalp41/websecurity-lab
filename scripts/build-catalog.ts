@@ -7,9 +7,9 @@
  *
  * Exits non-zero on: schema violation, duplicate lab id among discovered labs,
  * an OWASP/CWE value outside packages/schema/enums.json, a lab id absent from
- * data/catalog.json, or a track/category mismatch. Emits a loud WARNING (but
- * does not fail) for duplicate slugs in the source catalog, since fixing those
- * requires an AUDITOR-approved charter update.
+ * data/catalog.json, or a track/category mismatch, or a duplicate slug in the
+ * source catalog (slugs must be globally unique; unique them via an
+ * AUDITOR-approved charter update). Also emits hub/public/labs-index.json.
  */
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
@@ -193,6 +193,21 @@ const output = {
   labs: generated,
 };
 writeFileSync(OUT, JSON.stringify(output, null, 2) + '\n');
+
+// Compact index for the hub command palette (ALL catalog labs, not just implemented).
+const hubPublic = join(ROOT, 'hub', 'public');
+if (existsSync(hubPublic)) {
+  const palette = catalog.flatMap((g) =>
+    g.labs.map((l) => ({
+      slug: l.slug,
+      title: l.title,
+      track: g.category,
+      difficulty: l.difficulty,
+    })),
+  );
+  writeFileSync(join(hubPublic, 'labs-index.json'), JSON.stringify(palette));
+  console.log(`OK: wrote hub/public/labs-index.json (${palette.length} labs)`);
+}
 console.log(
   `OK: wrote ${OUT.slice(ROOT.length + 1)} (${generated.length} implemented / ${catalogTotal} planned)`,
 );

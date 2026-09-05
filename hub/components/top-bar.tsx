@@ -37,7 +37,21 @@ export function TopBar() {
           </Link>
         ))}
       </nav>
-      <span style={{ marginLeft: 'auto', color: 'var(--fg-subtle)', fontSize: 'var(--fs-xs)' }}>
+      <span
+        aria-hidden="true"
+        title="Press Ctrl/Cmd + K to search"
+        style={{
+          marginLeft: 'auto',
+          color: 'var(--fg-muted)',
+          fontSize: 'var(--fs-xs)',
+          border: '1px solid var(--border-strong)',
+          borderRadius: 'var(--radius-sm)',
+          padding: '2px 8px',
+        }}
+      >
+        ⌘K
+      </span>
+      <span style={{ color: 'var(--fg-subtle)', fontSize: 'var(--fs-xs)' }}>
         matrix // dark-only
       </span>
     </header>
