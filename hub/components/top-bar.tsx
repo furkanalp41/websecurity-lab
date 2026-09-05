@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 import Link from 'next/link';
+import { CmdkButton } from '@/components/cmdk-button';
 
 const NAV: ReadonlyArray<readonly [string, string]> = [
   ['Map', '/map'],
@@ -38,21 +39,17 @@ export function TopBar() {
         ))}
       </nav>
       <span
-        aria-hidden="true"
-        title="Press Ctrl/Cmd + K to search"
         style={{
           marginLeft: 'auto',
-          color: 'var(--fg-muted)',
-          fontSize: 'var(--fs-xs)',
-          border: '1px solid var(--border-strong)',
-          borderRadius: 'var(--radius-sm)',
-          padding: '2px 8px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--space-3)',
         }}
       >
-        ⌘K
-      </span>
-      <span style={{ color: 'var(--fg-subtle)', fontSize: 'var(--fs-xs)' }}>
-        matrix // dark-only
+        <CmdkButton />
+        <span style={{ color: 'var(--fg-subtle)', fontSize: 'var(--fs-xs)' }}>
+          matrix // dark-only
+        </span>
       </span>
     </header>
   );

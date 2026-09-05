@@ -78,7 +78,7 @@ export function FlagForm({ slug }: { slug: string }) {
           id="flag-input"
           value={flag}
           onChange={(e) => setFlag(e.target.value)}
-          placeholder="flag{...}"
+          placeholder="FLAG{...}"
           autoComplete="off"
           spellCheck={false}
           style={{

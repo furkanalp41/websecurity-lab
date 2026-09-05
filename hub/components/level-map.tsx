@@ -151,6 +151,13 @@ export function LevelMap({
     [size],
   );
 
+  const centerOn = useCallback(
+    (n: MapNode) => {
+      setCam((c) => ({ ...c, x: size.w / 2 - n.x * c.zoom, y: size.h / 2 - n.y * c.zoom }));
+    },
+    [size],
+  );
+
   const visibleNodes = useMemo(() => {
     const left = (-cam.x - CULL_MARGIN) / cam.zoom;
     const top = (-cam.y - CULL_MARGIN) / cam.zoom;
@@ -190,10 +197,15 @@ export function LevelMap({
           best = n;
         }
       }
-      if (best) setFocus(best.id);
-      else if (!cur) setFocus(origin.id);
+      if (best) {
+        setFocus(best.id);
+        centerOn(best);
+      } else if (!cur) {
+        setFocus(origin.id);
+        centerOn(origin);
+      }
     },
-    [nodes, focus, byId, trackFilter],
+    [nodes, focus, byId, trackFilter, centerOn],
   );
 
   const onKeyDown = useCallback(

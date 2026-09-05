@@ -68,8 +68,13 @@ export function CommandPalette() {
         open();
       }
     };
+    const onOpen = () => open();
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('websec:cmdk', onOpen);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('websec:cmdk', onOpen);
+    };
   }, [open]);
 
   const filtered = useMemo(() => {
@@ -122,6 +127,7 @@ export function CommandPalette() {
           role="combobox"
           aria-expanded="true"
           aria-controls="cmdk-list"
+          aria-activedescendant={filtered.length > 0 ? `cmdk-opt-${active}` : undefined}
           autoComplete="off"
           spellCheck={false}
           style={{
@@ -149,6 +155,7 @@ export function CommandPalette() {
           {filtered.map((item, i) => (
             <li
               key={`${item.href}:${i}`}
+              id={`cmdk-opt-${i}`}
               role="option"
               aria-selected={i === active}
               onMouseEnter={() => setActive(i)}

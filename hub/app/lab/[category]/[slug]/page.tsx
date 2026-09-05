@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { FlagForm } from '@/components/flag-form';
@@ -7,6 +8,16 @@ import { TIER_LABEL, trackLabel } from '@/lib/tiers';
 
 export function generateStaticParams(): Array<{ category: string; slug: string }> {
   return loadCatalog().map((l) => ({ category: l.category, slug: l.slug }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ category: string; slug: string }>;
+}): Promise<Metadata> {
+  const { category, slug } = await params;
+  const lab = loadLab(category, slug);
+  return { title: lab ? `${lab.title} · WebSecurity Lab` : 'Lab · WebSecurity Lab' };
 }
 
 export default async function LabPage({

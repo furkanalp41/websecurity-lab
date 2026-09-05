@@ -4,6 +4,10 @@
 // "static" mode when no daemon answers within 1.5s (GitHub Pages demo / file://).
 // The per-install bearer token is injected by `labctl serve` as window.__LABCTL_TOKEN__
 // (that injection is a ui-phase-2 task); absent it, the connection simply degrades.
+//
+// Note: in static mode the browser logs a red "WebSocket connection refused" for the
+// daemon probe. That message is emitted by the browser itself (not catchable/suppressible
+// from JS) and is harmless — the client has already switched to static mode by then.
 
 export type Mode = 'connecting' | 'live' | 'static';
 
