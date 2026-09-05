@@ -121,8 +121,8 @@ jobs:
         run: docker compose -f "${{ matrix.lab }}/docker-compose.yml" up -d --wait
       - name: Container security posture gate
         run: |
-          cid=$(docker compose -f "${{ matrix.lab }}/docker-compose.yml" ps -q | head -1)
-          sh scripts/check-posture.sh "$cid"
+          cids=$(docker compose -f "${{ matrix.lab }}/docker-compose.yml" ps -q)
+          sh scripts/check-posture.sh $cids
       - name: Resolve image + enforce size cap (<300MB)
         id: img
         run: |
