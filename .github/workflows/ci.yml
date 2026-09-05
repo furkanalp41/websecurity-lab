@@ -98,6 +98,13 @@ jobs:
           echo "labs=$labs" >> "$GITHUB_OUTPUT"
           echo "count=$(echo "$labs" | jq 'length')" >> "$GITHUB_OUTPUT"
 
+  dockerfile-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every lab FROM is digest-pinned
+        run: sh scripts/check-dockerfiles.sh
+
   docker-lab-matrix:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -111,6 +118,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Compose up (hardened, fixed loopback port)
         run: docker compose -f "${{ matrix.lab }}/docker-compose.yml" up -d --wait
+      - name: Container security posture gate
+        run: |
+          cid=$(docker compose -f "${{ matrix.lab }}/docker-compose.yml" ps -q | head -1)
+          sh scripts/check-posture.sh "$cid"
       - name: Resolve image + enforce size cap (<300MB)
         id: img
         run: |

@@ -105,11 +105,19 @@ Flag contract: `FLAG{ hmac_sha256(LAB_USER_SECRET, "v1|" + slug) }`. CI dev secr
 
 ## Known issues / decisions to carry forward
 
-- **Duplicate slugs in the authoritative catalog** (must be uniqued via charter update before those tracks ship):
-  `graphql-batch-auth-bypass` (graphql-api-owasp-top10 ↔ ctftime-web-2024-2026) and
-  `nginx-alias-off-by-slash` (smuggling-cache-desync ↔ command-injection-upload-fileread).
-- **Spec conflict**: `docs/ux-hub-spec.json` details daily streaks / 🔥 flame / default leaderboards, which
-  PROMPT-1 §13 forbids. Non-goals win. Resolve at P2 (gamification) via charter/escalation.
+- **Duplicate slugs — RESOLVED (arch-000-r1, AUDITOR-approved charter edit).** The two cross-track dupes were
+  uniqued in `data/catalog.json`: `nginx-alias-off-by-slash` → `nginx-alias-traversal-basic`
+  (smuggling-cache-desync) and `nginx-alias-fileread-chain` (command-injection-upload-fileread);
+  `graphql-batch-auth-bypass` → `graphql-batch-rate-limit-bypass` (graphql-api-owasp-top10) and
+  `graphql-batch-auth-bypass-ctf` (ctftime-web-2024-2026). `build-catalog.ts` now HARD-FAILS on any duplicate slug.
+- **Streaks/leaderboard — RESOLVED (reviews/arch-000.md Q5).** Non-goals win: do NOT implement daily streaks,
+  the 🔥 flame glyph, the daily-solve tracker, or streak toasts (annotated `_supersede_notice` in
+  `docs/ux-hub-spec.json`). The **local** leaderboard STAYS (only default-on GLOBAL leaderboards are forbidden).
+- **Difficulty tier time ceilings** (for AUDITOR cold-solve timing; re-tier if >2× the ceiling):
+  apprentice ≤ 10 min, practitioner ≤ 30 min, expert ≤ 90 min, elite ≤ 180 min.
+- **Flag exposure**: the template `entrypoint.sh` writes the flag then `unset LAB_USER_SECRET` before `exec`, so an
+  in-container read cannot recover the secret. File-read/RCE-class tracks (fileread, command-inj, XXE, deser, SSTI)
+  must ALSO place the flag outside the app's read scope — `unset` alone is not sufficient there.
 - **Category names**: directories use the `data/catalog.json` category slugs (`sqli`, `xss`, …), not the
   `web-*` names in an early `docs/architecture.json` draft. The catalog is authoritative.
 - **Sample-lab port**: Apache listens on 8080 (non-privileged) so the container runs non-root + `cap_drop: ALL`

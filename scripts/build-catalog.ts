@@ -68,8 +68,8 @@ console.log(`catalog: ${catalogTotal} labs across ${catalog.length} categories`)
 
 const dupSlugs = [...slugCounts.entries()].filter(([, n]) => n > 1).map(([s]) => s);
 if (dupSlugs.length > 0) {
-  console.warn(
-    `WARNING: duplicate slug(s) in data/catalog.json (needs a charter fix before those tracks ship): ${dupSlugs.join(', ')}`,
+  fail(
+    `duplicate slug(s) in data/catalog.json (slugs must be globally unique; unique them via an AUDITOR-approved charter update): ${dupSlugs.join(', ')}`,
   );
 }
 

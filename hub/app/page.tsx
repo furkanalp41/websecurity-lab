@@ -2,7 +2,7 @@
 import Link from 'next/link';
 
 const LINES = [
-  'Two hundred labs. One rabbit. One carrot. Own the stack.',
+  '541 labs. One rabbit. One carrot. Own the stack.',
   'Recon. Enumerate. Exploit. Chain.',
   'The map is the game.',
 ];

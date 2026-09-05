@@ -25,6 +25,9 @@ export function startDaemon(opts: DaemonOptions = {}): WebSocketServer {
     port: opts.port ?? DEFAULT_PORT,
     verifyClient: (info, done) => {
       const origin = info.origin || info.req.headers.origin || '';
+      // NOTE (ui-phase-2-lab-runner): this rejects any client without an Origin
+      // header, which is correct for the browser hub but will need an explicit
+      // exemption (e.g. a bearer-only allowance) for a non-browser labctl WS client.
       if (!ALLOWED_ORIGINS.has(origin)) {
         done(false, 403, 'forbidden origin');
         return;

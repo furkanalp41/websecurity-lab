@@ -3016,7 +3016,7 @@
         "inspired_by": "Omer Gil 'Web Cache Deception Attack' (Black Hat USA 2017)"
       },
       {
-        "slug": "nginx-alias-off-by-slash",
+        "slug": "nginx-alias-traversal-basic",
         "title": "Nginx alias Traversal: The Missing Slash",
         "difficulty": "apprentice",
         "description": "A single `location /static { alias /var/www/assets; }` (note: no trailing slash on the location) lets `/static../etc/passwd` resolve to `/var/www/assets../etc/passwd` → `/var/www/etc/passwd`-adjacent traversal. Classic Detectify finding, minimal reproduction, with a diff toggle showing the correct config.",
@@ -6012,7 +6012,7 @@
         "inspired_by": "Ubiquitous PHP LFI technique; mirrors real 2023 Bitrix LFI writeups."
       },
       {
-        "slug": "nginx-alias-off-by-slash",
+        "slug": "nginx-alias-fileread-chain",
         "title": "Nginx Alias Off-by-Slash Directory Traversal",
         "difficulty": "practitioner",
         "description": "A misconfigured nginx location block reads `location /files { alias /var/www/private_files/; }` (note the missing trailing slash on `/files`). Requests to `/files../etc/passwd` escape the alias directory. Users learn to distinguish `alias` from `root`, then walk to /flag.txt.",
@@ -7073,7 +7073,7 @@
         "inspired_by": "Shopify engineering blog on GraphQL cost analysis (2018); HackerOne report #489146 (GitLab nested query DoS)"
       },
       {
-        "slug": "graphql-batch-auth-bypass",
+        "slug": "graphql-batch-rate-limit-bypass",
         "title": "Batching Past the Rate Limiter",
         "difficulty": "practitioner",
         "description": "The login mutation is rate-limited to 5 tries per minute per IP by counting incoming HTTP requests. But the GraphQL server supports operation batching (a JSON array of operations in one POST). Because the limiter counts requests, not operations, an attacker sends one HTTP request containing 1000 login attempts and brute-forces the admin PIN (4 digits).",
@@ -10794,7 +10794,7 @@
         "inspired_by": "PicoCTF 'session' + DiceCTF 2022 'blazingfast' + numerous HackerOne reports"
       },
       {
-        "slug": "graphql-batch-auth-bypass",
+        "slug": "graphql-batch-auth-bypass-ctf",
         "title": "GraphQL Batching to Skip Rate Limits and Auth",
         "difficulty": "practitioner",
         "description": "A GraphQL gateway enforces auth and rate limits per HTTP request via middleware, but a legacy /batch endpoint accepts an array of queries and executes them concurrently on the resolver layer. Individual resolvers do not re-check auth. The player packages a 2FA-brute-force plus a mutation to read the flag inside one batched call.",
