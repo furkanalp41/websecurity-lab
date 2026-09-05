@@ -132,12 +132,13 @@ jobs:
             echo "::error::a materialized flag literal was found in the image"; exit 1
           fi
       - name: Trivy image scan (fail on HIGH/CRITICAL, fixed only)
-        uses: aquasecurity/trivy-action@v0.29.0
-        with:
-          image-ref: ${{ steps.img.outputs.image }}
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          exit-code: '1'
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:0.74.0 image \
+            --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
+            --no-progress --scanners vuln \
+            "${{ steps.img.outputs.image }}"
       - name: Dive layer efficiency (advisory)
         run: |
           docker run --rm -e CI=true -v /var/run/docker.sock:/var/run/docker.sock \
