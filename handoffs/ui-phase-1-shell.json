@@ -1,0 +1,19 @@
+{
+  "type": "batch-review-request",
+  "batch_id": "ui-phase-1-shell",
+  "branch": "build/ui-phase-1-shell",
+  "working_dir": "/home/vlad/websecurity-lab",
+  "pr_url": "https://github.com/furkanalp41/websecurity-lab/pull/2",
+  "base_commit": "de83fac0038255ef5ed77d1438353a9785d47636",
+  "head_commit": "b392deaac04a8688f07c03be430502b320b907a9",
+  "self_test_evidence": {
+    "ci_run": "https://github.com/furkanalp41/websecurity-lab/actions/runs/33990197625",
+    "ci_result": "success (8/8)",
+    "static_export": "541 lab pages + /map + /labs-index.json (541); export 22MB",
+    "typecheck": "hub clean under all 7 strict flags",
+    "a11y": "map role=application + keyboard nav + aria-live + text-map tree; cmdk native <dialog>; hints native <details>",
+    "xss": "all catalog/lab strings render as React text children; no dangerouslySetInnerHTML",
+    "no_new_runtime_deps": true
+  },
+  "questions": []
+}

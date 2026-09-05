@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 import Link from 'next/link';
+import { CmdkButton } from '@/components/cmdk-button';
 
 const NAV: ReadonlyArray<readonly [string, string]> = [
   ['Map', '/map'],
@@ -37,8 +38,18 @@ export function TopBar() {
           </Link>
         ))}
       </nav>
-      <span style={{ marginLeft: 'auto', color: 'var(--fg-subtle)', fontSize: 'var(--fs-xs)' }}>
-        matrix // dark-only
+      <span
+        style={{
+          marginLeft: 'auto',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'var(--space-3)',
+        }}
+      >
+        <CmdkButton />
+        <span style={{ color: 'var(--fg-subtle)', fontSize: 'var(--fs-xs)' }}>
+          matrix // dark-only
+        </span>
       </span>
     </header>
   );

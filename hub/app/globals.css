@@ -60,3 +60,54 @@ a:hover {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* --- level-map HUD controls --- */
+.mapbtn {
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+  min-width: 34px;
+}
+.mapbtn:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-focus);
+}
+
+@keyframes flag-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(6px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(4px);
+  }
+}
+
+/* --- command palette (native dialog) --- */
+dialog.cmdk {
+  margin: 12vh auto auto;
+  width: min(560px, 92vw);
+  background: var(--bg-elevated);
+  color: var(--fg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
+  padding: 0;
+}
+dialog.cmdk::backdrop {
+  background: rgba(3, 5, 7, 0.6);
+}

@@ -81,7 +81,7 @@ const graph = {
   id: 'root',
   layoutOptions: {
     'elk.algorithm': 'layered',
-    'elk.direction': 'UP',
+    'elk.direction': 'DOWN',
     'elk.spacing.nodeNode': '48',
     'elk.layered.spacing.nodeNodeBetweenLayers': '80',
   },
