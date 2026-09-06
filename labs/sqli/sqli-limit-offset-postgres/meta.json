@@ -1,0 +1,34 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "sqli-limit-offset-postgres",
+  "title": "Injection Inside LIMIT/OFFSET on Postgres",
+  "track": "sqli",
+  "difficulty": "practitioner",
+  "estimated_minutes": 30,
+  "max_lifetime_minutes": 60,
+  "learning_objectives": [
+    "Recognise SQL injection in an integer LIMIT/OFFSET context with no string literal to break out of",
+    "Explain why a UNION SELECT cannot syntactically follow LIMIT before a statement terminator in PostgreSQL",
+    "Place a parenthesised scalar subquery in the OFFSET position as an error-based value oracle",
+    "Leak a per-instance secret through a failed text-to-integer CAST and submit it to win"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-89", "CWE-209"],
+  "prerequisites": ["sqli-order-by-numeric"],
+  "flag_hint": "GET /solve?code=<value> compares the submitted value to the admin user's recovery_code; on match it returns JSON containing the flag read from the flag file, otherwise HTTP 403.",
+  "tech_stack": ["Python 3.12", "Flask 3.0", "SQLAlchemy 2.0 Core", "PostgreSQL 16", "gunicorn 22"],
+  "tags": [
+    "sqli",
+    "limit-offset",
+    "error-oracle",
+    "scalar-subquery",
+    "postgres",
+    "cwe-89",
+    "cwe-209"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/feed" },
+  "inspired_by": "PortSwigger 'SQL injection in a LIMIT clause' + Postgres error-oracle write-ups on scalar subqueries in OFFSET"
+}

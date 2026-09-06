@@ -31,6 +31,34 @@ Every batch-`a` lab: non-root app + non-root DB service (hardened per
 pids/mem limits, loopback-only published port), intended exploit lands the flag in
 under one second locally, `checker.sh` green.
 
+### batch/track-sqli-b (this batch — 6 labs)
+
+| slug                                       | tier         | sub-class                                                              | stack              |
+| ------------------------------------------ | ------------ | ---------------------------------------------------------------------- | ------------------ |
+| `sqli-error-based-extractvalue`            | apprentice   | error-based extraction via `EXTRACTVALUE`/`UPDATEXML` (XPATH errors)   | Flask + MySQL      |
+| `sqli-time-blind-mysql-sleep`              | practitioner | time-based blind in an `INSERT` context (`IF(...,SLEEP(),0)` subquery) | Flask + MySQL      |
+| `sqli-header-user-agent-analytics`         | practitioner | stored / second-order injection through the `User-Agent` header        | Flask + MySQL      |
+| `sqli-limit-offset-postgres`               | practitioner | injection in the `LIMIT`/`OFFSET` position (scalar-subquery oracle)    | Flask + PostgreSQL |
+| `sqli-waf-bypass-versioned-comments-mysql` | practitioner | keyword-blocklist WAF bypass via MySQL versioned comments `/*!...*/`   | Flask + MySQL      |
+| `sqli-waf-bypass-whitespace-tabs`          | practitioner | whitespace-stripping WAF bypass (space-free payloads: `/**/`, `%0a`)   | Flask + MySQL      |
+
+Same hardening bar as batch-`a` (non-root app + non-root DB, `read_only`,
+`cap_drop: ALL`, `no-new-privileges`, pids/mem limits, loopback-only port);
+each intended exploit lands the flag in well under 60 s (time-blind ~15 s,
+the rest sub-second), `checker.sh` green, both Trivy gates green, image < 300 MB.
+
+**Documented catalog deviations (see each `SOLUTION.md`):**
+
+- `sqli-time-blind-mysql-sleep`: `secrets.beacon_token` is 16 hex chars (not the
+  catalog's aspirational 40) so the intended time-based extraction completes within
+  the platform's <60 s exploit gate at the same one-request-per-bit cadence.
+- `sqli-limit-offset-postgres`: uses a scalar-subquery **error oracle** in the
+  integer `OFFSET` position instead of a post-`LIMIT` `UNION` — Postgres grammar
+  does not allow `UNION` to follow `LIMIT`, which the catalog note itself flags.
+- The two WAF labs implement the filter **in-app** (a CRS-style keyword regex; a
+  whitespace-stripping normaliser) rather than a separate proxy tier, keeping the
+  lab to one hardened app container while teaching the identical bypass primitive.
+
 ## Learning-objective coverage (batch-a)
 
 - ORDER BY / non-string injection contexts and CAST/error oracles — `sqli-order-by-numeric`
@@ -41,12 +69,12 @@ under one second locally, `checker.sh` green.
 
 ## Scheduled (future batches, Linux-feasible)
 
-`sqli-error-based-extractvalue`, `sqli-cookie-tracking-id` [done], `sqli-time-blind-mysql-sleep`,
-`sqli-header-user-agent-analytics`, `sqli-json-body-prisma-raw`, `sqli-limit-offset-postgres`,
-`sqli-mongo-operator-login-bypass`, `sqli-couchdb-mango-selector`,
-`sqli-waf-bypass-versioned-comments-mysql`, `sqli-waf-bypass-whitespace-tabs`,
-`sqli-django-extra-orm`, `sqli-rails-active-record-hash`, `sqli-graphql-batch-prisma-raw`,
-`sqli-layerslider-unauth-time-blind` → track-sqli-b / -c (≤20 labs per batch).
+Remaining after track-sqli-b (each adds a new DB engine or language runtime, so
+they are grouped for a later batch): `sqli-json-body-prisma-raw` (Node/Prisma),
+`sqli-mongo-operator-login-bypass` (MongoDB), `sqli-couchdb-mango-selector`
+(CouchDB), `sqli-django-extra-orm`, `sqli-rails-active-record-hash` (Rails),
+`sqli-graphql-batch-prisma-raw`, `sqli-layerslider-unauth-time-blind` →
+track-sqli-c (≤20 labs per batch).
 
 ## Coverage gaps — infeasible as specified (needs an AUDITOR/operator charter decision)
 

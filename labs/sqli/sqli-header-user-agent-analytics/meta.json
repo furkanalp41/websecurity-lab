@@ -1,0 +1,35 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "sqli-header-user-agent-analytics",
+  "title": "Stored SQLi Through the User-Agent Header",
+  "track": "sqli",
+  "difficulty": "practitioner",
+  "estimated_minutes": 35,
+  "max_lifetime_minutes": 60,
+  "learning_objectives": [
+    "Recognise that a safe, parameterised INSERT can still feed a second-order SQL injection when the stored value is later concatenated into a query",
+    "Use an HTTP request header (User-Agent) as an injection surface instead of a query-string parameter",
+    "Craft a stored UNION SELECT payload that executes on a separate read/render code path",
+    "Exfiltrate a per-container secret (settings.master_key) via the rendered analytics and exchange it for the flag"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-89"],
+  "prerequisites": ["sqli-second-order-registration"],
+  "flag_hint": "/solve compares ?key (or a POST key field) to settings.master_key; on match it reads the flag file at $FLAG_PATH and returns the flag, otherwise HTTP 403.",
+  "tech_stack": ["Python 3.12", "Flask 3.0", "gunicorn 22", "PyMySQL 1.1", "MySQL 8.4"],
+  "tags": [
+    "sqli",
+    "second-order",
+    "stored-injection",
+    "http-header",
+    "user-agent",
+    "union-based",
+    "mysql",
+    "cwe-89"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/admin/insights" },
+  "inspired_by": "PortSwigger 'SQL injection in the User-Agent HTTP header' plus classic analytics-log stored/second-order SQLi patterns"
+}

@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "sqli-time-blind-mysql-sleep",
+  "title": "Time-Blind SQLi on a Silent Analytics Beacon",
+  "track": "sqli",
+  "difficulty": "practitioner",
+  "estimated_minutes": 35,
+  "max_lifetime_minutes": 60,
+  "learning_objectives": [
+    "Recognise time-based blind SQL injection when response latency is the only observable signal",
+    "Inject into an INSERT ... VALUES statement via a scalar subquery when UNION and visible output are impossible",
+    "Reconstruct a secret character-by-character with a binary-search SLEEP oracle parallelised across positions",
+    "Understand why the catalogue's 40-char/1s-per-bit token was reduced to a 16-char hex token so the automated exploit clears the <60s gate — the technique is identical at any length"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-89"],
+  "prerequisites": ["sqli-boolean-blind-account-enum"],
+  "flag_hint": "POST /solve with JSON {\"token\":\"<16-hex>\"} matching secrets.beacon_token returns the flag read from the flag file; any other token yields HTTP 403.",
+  "tech_stack": ["Python 3.12", "Flask 3.0", "gunicorn 22", "PyMySQL 1.1", "MySQL 8.4"],
+  "tags": ["sqli", "time-based", "blind", "insert-injection", "sleep", "mysql", "cwe-89"],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/beacon" },
+  "inspired_by": "PortSwigger 'Blind SQL injection with time delays' + classic MySQL SLEEP()-based extraction inside an INSERT context"
+}

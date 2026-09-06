@@ -6,6 +6,27 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### track-sqli-b — SQLi labs 7–12 (6)
+
+- Six new SQLi labs extending the track into new injection techniques, contexts, and surfaces —
+  each with a hardened non-root app AND non-root database service, exploit landing the flag in
+  well under 60 s, passing multi-container posture gate, and both Trivy gates (library + OS) green:
+  `sqli-error-based-extractvalue` (EXTRACTVALUE/UPDATEXML XPATH error exfil with 32-char
+  truncation chunking, MySQL), `sqli-time-blind-mysql-sleep` (time-based blind in an INSERT
+  context via `IF(...,SLEEP(),0)` subquery, MySQL — threaded exploit, ~15 s),
+  `sqli-header-user-agent-analytics` (stored/second-order injection through the `User-Agent`
+  header, re-spliced on the admin read path, MySQL), `sqli-limit-offset-postgres` (injection in
+  the `LIMIT/OFFSET` position via a scalar-subquery error oracle, Postgres),
+  `sqli-waf-bypass-versioned-comments-mysql` (MySQL `/*!50000...*/` versioned-comment keyword
+  evasion, with a `/waf-log` rule-fired oracle), `sqli-waf-bypass-whitespace-tabs` (space-free
+  payloads via `/**/` and newline separators against a whitespace-stripping filter, with a
+  `/debug` byte-echo endpoint).
+- Deliberate deviations from `data/catalog.json`, documented in each lab's `SOLUTION.md`:
+  the time-blind token is 16 hex chars (not 40) so the intended exploit fits the platform's
+  <60 s exploit gate at the same 1-bit-per-request cadence; the LIMIT/OFFSET lab uses a scalar
+  subquery error oracle rather than a post-`LIMIT` `UNION` (which Postgres grammar forbids).
+- 12 labs implemented total (all `sqli`); catalog/map regenerate clean.
+
 ### track-sqli-a — first SQLi labs (5)
 
 - Five new SQLi labs covering the core progression, each with a hardened non-root app AND

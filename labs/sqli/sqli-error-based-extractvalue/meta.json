@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "sqli-error-based-extractvalue",
+  "title": "Error-Based Extraction with EXTRACTVALUE",
+  "track": "sqli",
+  "difficulty": "apprentice",
+  "estimated_minutes": 25,
+  "max_lifetime_minutes": 30,
+  "learning_objectives": [
+    "Recognise error-based SQL injection where the database error text is reflected",
+    "Coerce a subquery result into a MySQL EXTRACTVALUE 'XPATH syntax error' message",
+    "Work around the 32-character error truncation using SUBSTRING chunking",
+    "Reassemble a 36-character UUID from two error leaks and submit it to win"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-89", "CWE-209"],
+  "prerequisites": ["sqli-union-product-search"],
+  "flag_hint": "/solve accepts a POST JSON body {\"key\": \"<uuid>\"}; when it equals secrets.api_key the server returns the flag read from the flag file, otherwise HTTP 403.",
+  "tech_stack": ["Python 3.12", "Flask 3.0", "gunicorn 22", "PyMySQL 1.1", "MySQL 8.4"],
+  "tags": ["sqli", "error-based", "extractvalue", "mysql", "cwe-89", "cwe-209"],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/tickets" },
+  "inspired_by": "Classic MySQL error-based extraction via EXTRACTVALUE/UPDATEXML XPATH errors, as popularised in PortSwigger and OWASP SQLi write-ups"
+}
