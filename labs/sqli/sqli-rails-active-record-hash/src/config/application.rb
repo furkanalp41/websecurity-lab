@@ -12,7 +12,7 @@ Bundler.require(*Rails.groups)
 
 module ReportsApi
   class Application < Rails::Application
-    config.load_defaults 7.1
+    config.load_defaults 7.2
 
     # API-only: no cookies, no CSRF middleware, no view layer.
     config.api_only = true

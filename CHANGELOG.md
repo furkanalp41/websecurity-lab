@@ -6,6 +6,18 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### chore-sqli-c-docs — docs/metadata polish for track-sqli-c (AUDITOR BL-1..BL-8)
+
+- **BL-1**: `sqli-json-body-prisma-raw` and `sqli-rails-active-record-hash` SOLUTION.md now list ≥3 distinct payload vectors each.
+- **BL-2**: all six track-sqli-c SOLUTION.md carry an explicit **OWASP / CWE / CVE** line.
+- **BL-3**: `sqli-json-body-prisma-raw` catalog prose corrected (real `SELECT id, title, status` column list; text, not jsonb, columns).
+- **BL-4**: `sqli-couchdb-mango-selector` meta `inspired_by` no longer cites the unrelated CVE-2022-24706 (Erlang-dist RCE).
+- **BL-5**: `sqli-django-extra-orm` bumped Django 5.1.14 (security-EOL) → **5.2.17 LTS** (rebuilt + re-verified, Trivy green).
+- **BL-6**: `sqli-rails-active-record-hash` version drift fixed (`load_defaults`/README/Gemfile 7.1 → 7.2), stale `rails runner` and nokogiri comments corrected, README time aligned to meta (45 min), dropped `permit(:category)` for a non-existent column.
+- **BL-7**: `sqli-graphql-batch-prisma-raw` SOLUTION backticks repaired, README no longer spells out the breakout (deferred to hints), and the non-existent "resolver-level rate limit" claim removed from the objective/SOLUTION.
+- **BL-8**: `sqli-mongo-operator-login-bypass` and `sqli-django-extra-orm` `exposed_service.http_path` now point at the GET landing (`/`) instead of a POST-only route.
+- Docs/metadata/version-currency only; the two rebuilt labs (django, rails) re-verified green (posture, exploit, checker, both Trivy gates, < 300 MB).
+
 ### track-sqli-c — native-stack SQLi/NoSQL labs 13–18 (6)
 
 - Six new labs built in their **native stacks** (the Hybrid "diversity" batch), each with a hardened

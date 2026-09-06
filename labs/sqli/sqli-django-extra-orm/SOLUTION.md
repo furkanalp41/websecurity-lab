@@ -1,5 +1,7 @@
 # Solution — sqli-django-extra-orm
 
+> **OWASP:** A03:2021-Injection · **CWE:** CWE-89 · **CVE:** N/A — this lab teaches the vulnerability class, not a specific product CVE.
+
 ## What tipped you off
 
 The app "uses the ORM everywhere," yet the advanced-search results clearly change

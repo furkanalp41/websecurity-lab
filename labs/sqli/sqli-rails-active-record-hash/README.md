@@ -1,10 +1,10 @@
 # Rails ActiveRecord Hash-Condition & ORDER BY Injection
 
-> Track: `sqli` · Difficulty: **expert** · ~35 min · Free hints.
+> Track: `sqli` · Difficulty: **expert** · ~45 min · Free hints.
 
 ## Scenario
 
-An incident-report API built with Rails 7.1 (API-only) exposes:
+An incident-report API built with Rails 7.2 (API-only) exposes:
 
 ```
 GET /reports?filter[status]=open&sort=<expr>

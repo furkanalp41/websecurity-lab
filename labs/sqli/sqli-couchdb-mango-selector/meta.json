@@ -41,5 +41,5 @@
     "protocol": "http",
     "http_path": "/find"
   },
-  "inspired_by": "The 2023 Sonar research writeup on CouchDB selector abuse plus CVE-2022-24706-adjacent techniques"
+  "inspired_by": "The 2023 Sonar research writeup on CouchDB Mango _find selector abuse (access-control bypass via client-controlled selectors; no specific CVE)"
 }

@@ -80,10 +80,10 @@ flag copied from another machine will never validate on yours.
    ```
    Watch how `searchReportsCalls` jumps when you send several aliases in one
    request — that ratio is the batching amplification you will lean on.
-3. Now make the search lie. Close the string literal in `filter`, `AND` a
-   condition whose answer you know, and comment out the trailing `%'`. When you
-   can flip the row count on demand, point the condition at `secrets.batch_flag`.
-   Reveal the hints in order if you get stuck — they are free.
+3. Then make the search _lie_: get `filter` to change the number of rows it
+   returns based on a condition you control. Once a probe's row count answers a
+   yes/no question, you have a boolean oracle to aim at the hidden data. Reveal the
+   hints in order if you get stuck — they spell out the payload shape and are free.
 
 **CVE analog family.** Boolean-based **blind SQL injection** (CWE-89, OWASP
 **A03:2021 – Injection**) reached through an ORM "raw" escape hatch, amplified by

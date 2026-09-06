@@ -1,5 +1,7 @@
 # Solution — sqli-couchdb-mango-selector
 
+> **OWASP:** A03:2021-Injection · **CWE:** CWE-943 (query-language injection) · **CVE:** N/A — this lab teaches the vulnerability class, not a specific product CVE.
+
 <!-- Instructor/authoring reference. Students should try the hints first. -->
 
 ## What tipped you off

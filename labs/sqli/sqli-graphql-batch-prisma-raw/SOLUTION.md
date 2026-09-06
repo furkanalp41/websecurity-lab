@@ -1,5 +1,7 @@
 # Solution — sqli-graphql-batch-prisma-raw
 
+> **OWASP:** A03:2021-Injection · **CWE:** CWE-89 · **CVE:** N/A — this lab teaches the vulnerability class, not a specific product CVE.
+
 <!-- Instructor/authoring reference. Students should try the hints first. -->
 
 ## What tipped you off
@@ -20,8 +22,9 @@ request, which only matters if you plan to.
   "the search returned >= 1 row" vs "0 rows". That single bit per probe is a
   complete read primitive.
 - The delivery twist is **GraphQL operation/alias batching**: because one document
-  can contain hundreds of aliased `searchReports` fields, the request count that
-  normally throttles blind extraction collapses to a handful of round-trips.
+  can contain hundreds of aliased `searchReports` fields, the thousands of requests
+  a naive blind extraction would need collapse to a handful of round-trips (the API
+  enforces no query-depth, complexity, or per-client rate limit).
 
 ## Vulnerability
 
@@ -34,9 +37,10 @@ const rows = (await prisma.$queryRawUnsafe(sql)) as ReportRow[];
 
 `args.filter` is the GraphQL argument, concatenated straight into the query text
 and executed with `prisma.$queryRawUnsafe`. That method runs the string verbatim —
-it does **not** parameterise. Prisma's safe sibling, the tagged template
-`prisma.$queryRaw\`... ${value} ...\``, would send `value`as a bound parameter and
-this bug would not exist.`/solve`is written the correct way (a bound`prisma.secret.findFirst`) on purpose — it is not injectable; `searchReports` is.
+it does **not** parameterise. Prisma's safe sibling — the tagged template
+`prisma.$queryRaw` with `${value}` interpolation — sends the value as a bound
+parameter, and this bug would not exist. `/solve` is written the correct way (a
+bound `prisma.secret.findFirst`) on purpose: it is not injectable; `searchReports` is.
 
 ## Why the developer wrote it this way
 

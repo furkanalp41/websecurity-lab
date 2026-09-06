@@ -1,5 +1,7 @@
 # Solution — MongoDB Operator Injection on Login
 
+> **OWASP:** A03:2021-Injection · **CWE:** CWE-943 (NoSQL injection) · **CVE:** N/A — this lab teaches the vulnerability class, not a specific product CVE.
+
 ## The vulnerability
 
 `POST /login` forwards the parsed JSON body directly into a native MongoDB query:
