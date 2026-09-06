@@ -1,0 +1,36 @@
+// SPDX-License-Identifier: MIT
+// Prisma schema for the deliberately vulnerable "Field Reports" GraphQL API.
+//
+// The client is generated for BOTH the local build platform and the alpine/musl
+// runtime so the container ships the correct query engine binary. The datasource
+// URL is read from the environment at runtime (see docker-compose.yml).
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// A public "field report" record. searchReports() reads (id, title) from here.
+// The tables are also (idempotently) created in app/seed.ts via raw SQL so the
+// container needs no Prisma CLI / migration step at runtime.
+model Report {
+  id    Int    @id @default(autoincrement())
+  title String
+
+  @@map("reports")
+}
+
+// Holds the per-container secret the learner must exfiltrate: a 40-char string
+// seeded fresh on every boot. It lives in a DIFFERENT table from reports, so the
+// injected boolean predicate must reach across tables with a sub-select.
+model Secret {
+  id        Int    @id @default(autoincrement())
+  batchFlag String @map("batch_flag")
+
+  @@map("secrets")
+}

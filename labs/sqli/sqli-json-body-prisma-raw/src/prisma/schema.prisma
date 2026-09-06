@@ -1,0 +1,36 @@
+// SPDX-License-Identifier: MIT
+// Prisma schema for the deliberately vulnerable report API.
+//
+// The models below document the shape of the two tables. The tables themselves
+// are created and seeded idempotently at container start by seed.ts using raw
+// SQL (no migrations shipped) so the lab boots on a fresh, ephemeral tmpfs
+// Postgres datadir every time.
+
+generator client {
+  provider      = "prisma-client-js"
+  // native == linux-musl-openssl-3.0.x on the node:20-alpine runtime; both are
+  // listed so `prisma generate` fetches the musl query-engine that the runtime
+  // image needs under Alpine.
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Report {
+  id     Int    @id @default(autoincrement())
+  title  String
+  status String
+
+  @@map("reports")
+}
+
+model AuditLog {
+  id     Int    @id @default(autoincrement())
+  action String
+  detail String
+
+  @@map("audit_logs")
+}

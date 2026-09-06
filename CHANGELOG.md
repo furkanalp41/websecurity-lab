@@ -6,6 +6,29 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### track-sqli-c — native-stack SQLi/NoSQL labs 13–18 (6)
+
+- Six new labs built in their **native stacks** (the Hybrid "diversity" batch), each with a hardened
+  non-root app AND non-root database service, intended exploit landing the flag in under 60 s, a passing
+  multi-container posture gate, both Trivy gates (library + OS) green, and image < 300 MB:
+  `sqli-json-body-prisma-raw` (Node/Fastify/Prisma `$queryRawUnsafe` via a JSON body value, Postgres),
+  `sqli-mongo-operator-login-bypass` (NoSQL `$ne` auth bypass + `$regex` blind extraction, Node/Express/mongoose/MongoDB, CWE-943),
+  `sqli-couchdb-mango-selector` (Mango `_find` selector access-control bypass, FastAPI/CouchDB, CWE-943),
+  `sqli-django-extra-orm` (`.extra()` raw-SQL UNION to read `auth_user`, Django/Postgres),
+  `sqli-rails-active-record-hash` (`Arel.sql` ORDER BY ordering-oracle blind extraction, Rails 7.2/Puma/Postgres),
+  `sqli-graphql-batch-prisma-raw` (batched-alias boolean-blind feeding Prisma `$queryRawUnsafe`, Apollo Server/Prisma/Postgres).
+- New hardened non-root DB / runtime patterns established for the platform:
+  - **MongoDB 7** — uid 999, tmpfs `/data/db`, `--wiredTigerCacheSizeGB 0.25`, and a bash `/dev/tcp` healthcheck
+    (mongosh as a healthcheck spawned a ~150 MB Node process each interval and OOM-killed mongod under `mem_limit`).
+  - **CouchDB 3.4** — uid 5984, tmpfs for every writable path (`/opt/couchdb/data`, `/opt/couchdb/etc/local.d`).
+  - **Node 20-alpine** — multi-stage; Prisma musl query-engine + `apk add openssl` (else Prisma loads a missing
+    1.1.x engine); the base image's bundled **npm is stripped from the runtime** (its deep dep tree — tar/pacote/
+    sigstore/minimatch/… — carries fixed HIGH CVEs the library gate blocks, none reachable in a `node`-only runtime).
+  - **Ruby 3.3-slim** — multi-stage; `pg` compiled from source (`BUNDLE_FORCE_RUBY_PLATFORM`) so it links the system
+    libpq; stale default `resolv` gemspec dropped so the patched bundled gem is what the scanner sees.
+- 18/25 SQLi labs implemented — **all Linux-feasible SQLi labs are now done**. `data/catalog.json` tech_stack
+  reconciled to the shipped stacks for the six (drift-lint green).
+
 ### chore-catalog-reconcile — catalog honesty + drift guardrail
 
 - Reconciled `data/catalog.json` `tech_stack` for all 12 implemented labs to match each

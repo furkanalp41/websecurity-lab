@@ -1,0 +1,36 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "sqli-json-body-prisma-raw",
+  "title": "Prisma $queryRaw Concatenation in a JSON API",
+  "track": "sqli",
+  "difficulty": "practitioner",
+  "estimated_minutes": 30,
+  "max_lifetime_minutes": 60,
+  "learning_objectives": [
+    "Distinguish Prisma's safe $queryRaw tagged template from the raw string concat of $queryRawUnsafe",
+    "Inject through a JSON request-body value rather than a URL query parameter",
+    "Break out of a string literal and append a UNION SELECT that matches arity and column types",
+    "Exfiltrate a row id from a confidential table and turn it into the solve token"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-89"],
+  "prerequisites": ["sqli-union-product-search"],
+  "flag_hint": "/solve reads the flag from /flag.txt when the submitted id matches the seeded audit-log row id.",
+  "tech_stack": [
+    "Node.js 20",
+    "TypeScript 5.6",
+    "Fastify 5.8",
+    "Prisma 5.20 (pg)",
+    "PostgreSQL 16"
+  ],
+  "tags": ["sqli", "prisma", "orm", "queryrawunsafe", "json-body", "union", "postgres", "cwe-89"],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": {
+    "container_port": 8080,
+    "protocol": "http",
+    "http_path": "/api/reports"
+  },
+  "inspired_by": "Snyk's 2024 research on Prisma $queryRawUnsafe misuse across GitHub, plus PortSwigger UNION-based SQL injection"
+}

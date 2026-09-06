@@ -1,0 +1,39 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "sqli-rails-active-record-hash",
+  "title": "Rails ActiveRecord ORDER BY Injection via Sort Param",
+  "track": "sqli",
+  "difficulty": "expert",
+  "estimated_minutes": 45,
+  "max_lifetime_minutes": 60,
+  "learning_objectives": [
+    "Recognise ActiveRecord order() SQL injection when a sort param reaches ORDER BY through Arel.sql",
+    "Explain why strong parameters bind where-hash conditions but do nothing for a raw sort string",
+    "Construct a boolean oracle from row ORDERING alone, with no error text and no data echoed in the body",
+    "Blind-extract a database secret character-by-character through a sort-based side channel"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-89"],
+  "prerequisites": ["sqli-boolean-blind-account-enum"],
+  "flag_hint": "Recover secrets.master_key (16 lowercase-hex chars) through the ORDER BY ordering oracle, then POST /solve {\"key\":\"<16hex>\"}. /solve verifies the key and reads $FLAG_PATH in code (no shell) to return the flag.",
+  "tech_stack": ["Ruby 3.3", "Rails 7.2", "Puma 7.2", "PostgreSQL 16"],
+  "tags": [
+    "sqli",
+    "blind-sqli",
+    "order-by",
+    "activerecord",
+    "rails",
+    "arel-sql",
+    "postgres",
+    "cwe-89"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": {
+    "container_port": 8080,
+    "protocol": "http",
+    "http_path": "/reports"
+  },
+  "inspired_by": "Rails ActiveRecord order()/Arel.sql raw-SQL injection (Brakeman SQL_Injection detector) and PortSwigger blind ORDER BY side-channel techniques"
+}

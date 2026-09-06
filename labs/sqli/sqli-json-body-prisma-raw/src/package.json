@@ -1,0 +1,22 @@
+{
+  "name": "sqli-json-body-prisma-raw",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Deliberately vulnerable Fastify + Prisma report API (CWE-89 via $queryRawUnsafe).",
+  "license": "MIT",
+  "scripts": {
+    "prisma:generate": "prisma generate",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "seed": "node dist/seed.js"
+  },
+  "dependencies": {
+    "@prisma/client": "5.20.0",
+    "fastify": "5.8.5"
+  },
+  "devDependencies": {
+    "@types/node": "20.16.5",
+    "prisma": "5.20.0",
+    "typescript": "5.6.3"
+  }
+}

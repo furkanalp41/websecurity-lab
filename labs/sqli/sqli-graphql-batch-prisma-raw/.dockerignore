@@ -1,0 +1,16 @@
+.git
+.env*
+**/.aws
+**/.ssh
+node_modules
+**/node_modules
+**/dist
+**/.prisma
+__pycache__
+**/__pycache__
+.pytest_cache
+tests
+SOLUTION.md
+hints
+README.md
+npm-debug.log*

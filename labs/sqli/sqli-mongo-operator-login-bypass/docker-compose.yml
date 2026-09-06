@@ -1,0 +1,109 @@
+# SPDX-License-Identifier: MIT
+name: websec-lab-sqli-mongo-operator-login-bypass
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: websec-lab/sqli-mongo-operator-login-bypass:dev
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      LAB_USER_SECRET: ${LAB_USER_SECRET:?LAB_USER_SECRET is required}
+      FLAG_PATH: /var/lib/lab/flag.txt
+      MONGO_URL: mongodb://db:27017/labdb
+      NODE_ENV: production
+    # labctl rewrites this to 127.0.0.1:<allocated>:8080 at launch; :0 = ephemeral for local/CI.
+    ports:
+      - '127.0.0.1:${LAB_HOST_PORT:-0}:8080'
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+      - /var/lib/lab:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
+    pids_limit: 200
+    ulimits:
+      nofile:
+        soft: 1024
+        hard: 2048
+    healthcheck:
+      # node is guaranteed present in the runtime image; use it as the HTTP probe.
+      test:
+        - CMD-SHELL
+        - 'node -e "require(''http'').get(''http://127.0.0.1:8080/health'',r=>{let d='''';r.on(''data'',c=>d+=c);r.on(''end'',()=>process.exit(r.statusCode===200&&d===''ok''?0:1))}).on(''error'',()=>process.exit(1))" || exit 1'
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+    networks:
+      - labnet
+
+  db:
+    image: mongo:7.0@sha256:b6421fd6d1c5ded6377b397d8983e2f82e2100dc5123332dcfda2065a472be5b
+    # Run mongod as the non-root mongodb uid (999). The tmpfs data dir below is
+    # owned by 999 so the server can initialise a fresh datadir on every start
+    # despite the read-only root filesystem. HOME=/tmp keeps any startup writes
+    # on a writable tmpfs.
+    user: '999:999'
+    environment:
+      HOME: /tmp
+    # Trim the WiredTiger cache so mongod's RSS fits inside mem_limit (512m).
+    # --bind_ip_all lets the app container reach mongod over the lab bridge.
+    command:
+      - mongod
+      - --bind_ip_all
+      - --wiredTigerCacheSizeGB
+      - '0.25'
+    read_only: true
+    tmpfs:
+      - /data/db:uid=999,gid=999,mode=0700,size=320m
+      - /tmp:size=32m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
+    pids_limit: 256
+    # Lightweight liveness probe: a bash /dev/tcp connect to the mongod port.
+    # Avoids spawning mongosh (a ~100-150MB Node process) every interval, which
+    # on top of mongod's RSS would spike the container past mem_limit and get it
+    # OOM-killed (exit 137). The app's own seed loop confirms real query-readiness.
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "timeout 3 bash -c '</dev/tcp/127.0.0.1/27017' || exit 1"
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+    networks:
+      - labnet
+
+networks:
+  labnet:
+    name: websec-lab_sqli-mongo-operator-login-bypass_net
+    driver: bridge
+    # Dedicated per-lab bridge. Not `internal: true`: Docker disables host port
+    # publishing on internal networks, and the learner reaches the app via its
+    # published 127.0.0.1 port. The DB publishes no ports at all.
+    internal: false

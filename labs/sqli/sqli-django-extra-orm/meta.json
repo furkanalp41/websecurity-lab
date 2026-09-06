@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "sqli-django-extra-orm",
+  "title": "Django ORM Escape Hatch: .extra() Misuse",
+  "track": "sqli",
+  "difficulty": "expert",
+  "estimated_minutes": 40,
+  "max_lifetime_minutes": 60,
+  "learning_objectives": [
+    "Explain why QuerySet.extra(), .raw() and RawSQL() bypass the ORM's automatic parameterisation",
+    "Recognise ORM escape hatches as first-class SQL injection sinks during code review",
+    "Craft a UNION SELECT that matches a query's column count and types to exfiltrate another table",
+    "Extract a Django superuser's pbkdf2_sha256 password hash from auth_user via injection"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-89"],
+  "prerequisites": ["sqli-second-order-registration"],
+  "flag_hint": "POST /solve with field 'hash' set to the exact auth_user.password value for username='root'; on an exact match the JSON response's 'flag' field returns the per-container flag read from the flag file.",
+  "tech_stack": ["Python 3.12", "Django 5.1", "gunicorn 22", "PostgreSQL 16", "psycopg 3"],
+  "tags": ["sqli", "union-based", "django", "orm", "extra", "raw-sql", "cwe-89", "postgres"],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/search" },
+  "inspired_by": "Django ORM escape-hatch SQL injection (QuerySet.extra/.raw/RawSQL) and the 'an ORM won't save you' code-review lesson; Django security advisories in the .extra()/.explain() family (CVE-2022-28347, CVE-2022-34265)"
+}
