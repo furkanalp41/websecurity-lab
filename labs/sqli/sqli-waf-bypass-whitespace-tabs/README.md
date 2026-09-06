@@ -50,9 +50,9 @@ someone else's instance will never validate — you must extract _yours_.
    you get stuck — they are free.
 
 **CVE analog family.** Blacklist-style WAFs that strip or reject whitespace are a
-recurring real-world weakness: MySQL's `/**/` inline comments, raw newlines
-(`%0a`), and parentheses all separate tokens without a single 0x20 byte. This is
-**CWE-89 / OWASP A03:2021 – Injection**, exploited via filter evasion rather than
-verbose errors. See PortSwigger's filter-bypass labs and the standard sqlmap
-`space2comment` / `space2mysqlblank` tamper scripts. No vendor code is reproduced
-here.
+recurring real-world weakness: a filter that reasons about a single "space" byte
+overlooks the many other separators a SQL parser happily accepts between tokens.
+This is **CWE-89 / OWASP A03:2021 – Injection**, exploited via filter evasion
+rather than verbose errors. See PortSwigger's filter-bypass labs and sqlmap's
+whitespace tamper scripts (the hints spell out the specific bytes). No vendor code
+is reproduced here.

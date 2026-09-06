@@ -6,7 +6,7 @@
   "track": "sqli",
   "difficulty": "practitioner",
   "estimated_minutes": 35,
-  "max_lifetime_minutes": 30,
+  "max_lifetime_minutes": 60,
   "learning_objectives": [
     "Recognise time-based blind SQL injection when response latency is the only observable signal",
     "Inject into an INSERT ... VALUES statement via a scalar subquery when UNION and visible output are impossible",

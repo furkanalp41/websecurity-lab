@@ -137,8 +137,8 @@ character. That is ~64 oracle requests total.
 ### Parallelising safely (and why the pool size matters)
 
 `tests/exploit.py` runs the 16 per-position searches in a thread pool, which
-cuts the wall-clock to ~10–15s. The pool is capped at **2 workers on purpose** —
-the same number as the server's `gunicorn --workers 2`:
+cuts the wall-clock to ~10–15s. The pool is capped at **4 workers on purpose** —
+the same number as the server's `gunicorn --workers 4`:
 
 > If the client sent _more_ concurrent requests than the server can execute at
 > once, a fast (FALSE) request would sit in the accept queue behind another

@@ -73,6 +73,15 @@ return urllib.parse.unquote(s)                # decode the rest, forward it
 Because the value is concatenated (never bound), any one of these turns the
 forwarded bytes back into executable SQL.
 
+> **Lab-vs-production deviation.** A real deployment would strip whitespace in a
+> separate WAF/proxy tier (an nginx/Caddy plugin or a Go middleware). This lab
+> models the filter in-process (`waf_forward` in the Flask app) so the whole lab
+> stays one hardened non-root container with the identical posture as the other
+> Python SQLi labs; the bypass primitive — token separators the filter never
+> anticipated — is exactly the same either way. `/debug` echoes the forwarded
+> bytes so you can confirm the filter's behaviour just as a proxy access log
+> would.
+
 ## Why the developer wrote it this way
 
 Blacklisting "looks" defensive and ships in an afternoon: no query rewrite, no

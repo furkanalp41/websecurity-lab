@@ -6,7 +6,7 @@
   "track": "sqli",
   "difficulty": "practitioner",
   "estimated_minutes": 30,
-  "max_lifetime_minutes": 30,
+  "max_lifetime_minutes": 60,
   "learning_objectives": [
     "Explain why stripping spaces and tabs is not a sound defence against SQL injection",
     "Reach a MySQL backend with zero 0x20 space bytes using /**/ comments, %0a newlines, and parentheses",

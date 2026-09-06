@@ -6,7 +6,7 @@
   "track": "sqli",
   "difficulty": "practitioner",
   "estimated_minutes": 30,
-  "max_lifetime_minutes": 30,
+  "max_lifetime_minutes": 60,
   "learning_objectives": [
     "Recognise SQL injection in an integer LIMIT/OFFSET context with no string literal to break out of",
     "Explain why a UNION SELECT cannot syntactically follow LIMIT before a statement terminator in PostgreSQL",
