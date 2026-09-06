@@ -1,0 +1,49 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "sqli-graphql-batch-prisma-raw",
+  "title": "GraphQL Batch Aliases Feeding a Raw Prisma Sink",
+  "track": "sqli",
+  "difficulty": "expert",
+  "estimated_minutes": 40,
+  "max_lifetime_minutes": 60,
+  "learning_objectives": [
+    "Recognise prisma.$queryRawUnsafe as a string-concatenation SQL sink (CWE-89) versus the safe tagged-template $queryRaw",
+    "Turn a GraphQL string argument into a boolean-blind oracle via a cross-table sub-select",
+    "Exploit GraphQL alias batching to fire hundreds of blind probes per HTTP round-trip",
+    "Reconstruct a 40-character secret from per-alias row-presence and reason about resolver-level rate limits"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-89"],
+  "prerequisites": ["sqli-boolean-blind-account-enum"],
+  "flag_hint": "Use boolean-blind SQLi through the batched GraphQL searchReports resolver (Prisma $queryRawUnsafe) to recover the 40-char secrets.batch_flag, then POST /solve {\"flag\":\"...\"} to receive the flag read from $FLAG_PATH.",
+  "tech_stack": [
+    "Node.js 20",
+    "TypeScript 5.6",
+    "Apollo Server 4.13",
+    "Prisma 5.20",
+    "Express 4.21",
+    "GraphQL 16",
+    "PostgreSQL 16"
+  ],
+  "tags": [
+    "sqli",
+    "blind-sqli",
+    "boolean-based",
+    "graphql",
+    "batching",
+    "prisma",
+    "orm",
+    "postgres",
+    "nodejs",
+    "cwe-89"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": {
+    "container_port": 8080,
+    "protocol": "http",
+    "http_path": "/graphql"
+  },
+  "inspired_by": "The 2022 Assetnote research on GraphQL batching amplification plus PortSwigger's blind-SQLi labs"
+}

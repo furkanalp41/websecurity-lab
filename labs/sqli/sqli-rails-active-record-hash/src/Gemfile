@@ -1,0 +1,23 @@
+# SPDX-License-Identifier: MIT
+# Minimal Rails 7.1 API-only stack. We depend on the individual Rails
+# components we actually use (railties + action_controller + active_record)
+# instead of the umbrella `rails` gem, which keeps the built image well under
+# the 300 MB cap (no Action Mailer / Active Storage / Action Cable / Action Text).
+source "https://rubygems.org"
+
+# No strict `ruby "3.3.x"` directive on purpose: the exact patch level of the
+# digest-pinned ruby:3.3-slim base is not known at authoring time, and a strict
+# patch pin would make `bundle install` fail on a mismatch. Rails 7.1 only needs
+# Ruby >= 2.7, and the base is Ruby 3.3.
+
+gem "railties", "~> 7.2.3"
+gem "actionpack", "~> 7.2.3"
+gem "activerecord", "~> 7.2.3"
+gem "activemodel", "~> 7.2.3"
+gem "activesupport", "~> 7.2.3"
+
+gem "pg", "~> 1.5"
+gem "puma", "~> 7.2"
+
+# Pin the resolv default gem to a patched version (CVE-2026-80212 fixed in 0.3.2).
+gem "resolv", ">= 0.3.2"

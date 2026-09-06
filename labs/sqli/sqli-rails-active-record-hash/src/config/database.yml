@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: MIT
+# Connection details come entirely from DATABASE_URL (set in docker-compose).
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS", 8) %>
+  url: <%= ENV["DATABASE_URL"] %>
+
+production:
+  <<: *default
+
+development:
+  <<: *default
+
+test:
+  <<: *default

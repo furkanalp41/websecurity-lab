@@ -59,6 +59,26 @@ the rest sub-second), `checker.sh` green, both Trivy gates green, image < 300 MB
   whitespace-stripping normaliser) rather than a separate proxy tier, keeping the
   lab to one hardened app container while teaching the identical bypass primitive.
 
+### batch/track-sqli-c (this batch — 6 labs, native stacks)
+
+| slug                               | tier         | sub-class                                                         | stack                           |
+| ---------------------------------- | ------------ | ----------------------------------------------------------------- | ------------------------------- |
+| `sqli-json-body-prisma-raw`        | practitioner | raw `$queryRawUnsafe` from a JSON body value + UNION              | Node/Fastify/Prisma + Postgres  |
+| `sqli-mongo-operator-login-bypass` | practitioner | NoSQL operator injection (`$ne` bypass, `$regex` blind) — CWE-943 | Node/Express/mongoose + MongoDB |
+| `sqli-couchdb-mango-selector`      | practitioner | CouchDB Mango `_find` selector access-control bypass — CWE-943    | FastAPI + CouchDB               |
+| `sqli-django-extra-orm`            | expert       | Django `.extra()` raw-SQL escape hatch + UNION on `auth_user`     | Django + PostgreSQL             |
+| `sqli-rails-active-record-hash`    | expert       | `Arel.sql` ORDER BY injection, ordering-oracle blind extraction   | Rails 7.2/Puma + PostgreSQL     |
+| `sqli-graphql-batch-prisma-raw`    | expert       | batched-alias boolean-blind → Prisma `$queryRawUnsafe`            | Apollo Server/Prisma + Postgres |
+
+The Hybrid "diversity" batch: each lab is built in the stack the catalog specifies
+(the six now match `data/catalog.json`, enforced by the build-catalog drift-lint).
+Same hardening bar as before on BOTH app and DB; exploit lands the flag in well
+under 60 s; both Trivy gates green; image < 300 MB. New non-root DB/runtime patterns
+(MongoDB uid 999 + bash `/dev/tcp` healthcheck; CouchDB uid 5984 + per-path tmpfs;
+Node-alpine multi-stage with the bundled npm stripped from the runtime; Ruby-slim
+with `pg` compiled from source and the stale default `resolv` gemspec dropped) are
+documented in each lab's `SOLUTION.md` and the `CHANGELOG`.
+
 ## Learning-objective coverage (batch-a)
 
 - ORDER BY / non-string injection contexts and CAST/error oracles — `sqli-order-by-numeric`
@@ -69,12 +89,10 @@ the rest sub-second), `checker.sh` green, both Trivy gates green, image < 300 MB
 
 ## Scheduled (future batches, Linux-feasible)
 
-Remaining after track-sqli-b (each adds a new DB engine or language runtime, so
-they are grouped for a later batch): `sqli-json-body-prisma-raw` (Node/Prisma),
-`sqli-mongo-operator-login-bypass` (MongoDB), `sqli-couchdb-mango-selector`
-(CouchDB), `sqli-django-extra-orm`, `sqli-rails-active-record-hash` (Rails),
-`sqli-graphql-batch-prisma-raw`, `sqli-layerslider-unauth-time-blind` →
-track-sqli-c (≤20 labs per batch).
+**All Linux-feasible SQLi labs are implemented (18/25).** The remaining 7 catalog
+entries are the infeasible-as-specified labs in the next section, pending the
+operator's charter decision (abstract onto a Linux stack, grant a heavy
+resource-tier, or drop).
 
 ## Coverage gaps — infeasible as specified (needs an AUDITOR/operator charter decision)
 

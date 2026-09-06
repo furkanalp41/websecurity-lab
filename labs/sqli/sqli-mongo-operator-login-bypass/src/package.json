@@ -1,0 +1,23 @@
+{
+  "name": "sqli-mongo-operator-login-bypass",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Deliberately vulnerable Express + mongoose login (NoSQL operator injection, CWE-943)",
+  "license": "MIT",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node seed.js"
+  },
+  "engines": {
+    "node": ">=20 <21"
+  },
+  "dependencies": {
+    "express": "4.21.2",
+    "mongoose": "8.22.1"
+  },
+  "overrides": {
+    "path-to-regexp": "0.1.13"
+  }
+}

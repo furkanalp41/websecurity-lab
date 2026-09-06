@@ -1,0 +1,45 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "sqli-couchdb-mango-selector",
+  "title": "CouchDB Mango Selector Injection",
+  "track": "sqli",
+  "difficulty": "practitioner",
+  "estimated_minutes": 30,
+  "max_lifetime_minutes": 60,
+  "learning_objectives": [
+    "Recognise that merging a client filter over a server access constraint lets the client win and erase the constraint",
+    "Craft CouchDB Mango selectors ($gt:null, colliding keys) that override an owner scope and reach hidden documents",
+    "Explain why NoSQL query-language injection (CWE-943) is a genuine access-control bypass without any classic SQL",
+    "Contrast the vulnerable shallow merge with a safe design that composes constraints server-side under $and"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-943"],
+  "prerequisites": ["sqli-boolean-blind-account-enum"],
+  "flag_hint": "Bypass the owner='guest' constraint by overriding the merged Mango selector to read flag_holder.secret from the 'restricted' database, then GET /solve?secret=<value> to receive the per-container flag read from $FLAG_PATH.",
+  "tech_stack": [
+    "Python 3.12",
+    "FastAPI 0.141",
+    "Starlette 1.6",
+    "httpx 0.27",
+    "CouchDB 3.4",
+    "uvicorn 0.52"
+  ],
+  "tags": [
+    "nosql-injection",
+    "couchdb",
+    "mango",
+    "selector-injection",
+    "access-control-bypass",
+    "cwe-943",
+    "fastapi"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": {
+    "container_port": 8080,
+    "protocol": "http",
+    "http_path": "/find"
+  },
+  "inspired_by": "The 2023 Sonar research writeup on CouchDB selector abuse plus CVE-2022-24706-adjacent techniques"
+}

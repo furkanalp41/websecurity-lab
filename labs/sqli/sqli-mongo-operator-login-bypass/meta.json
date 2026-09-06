@@ -1,0 +1,38 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "sqli-mongo-operator-login-bypass",
+  "title": "MongoDB Operator Injection on Login",
+  "track": "sqli",
+  "difficulty": "practitioner",
+  "estimated_minutes": 35,
+  "max_lifetime_minutes": 60,
+  "learning_objectives": [
+    "Recognise NoSQL operator injection when a request body is forwarded verbatim into a Mongo filter",
+    "Bypass authentication with operator objects like {\"$ne\": null} instead of scalar values",
+    "Turn a login endpoint into a blind oracle and extract a secret field with $regex prefix probes",
+    "Explain why casting/validating query shapes at the trust boundary defeats this class of bug"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-943", "CWE-89"],
+  "prerequisites": ["sqli-boolean-blind-account-enum"],
+  "flag_hint": "Bypass /login with $ne, then blind-extract admin.reset_token (64 hex) via a $regex login oracle and POST /solve {\"token\":\"<64hex>\"} to receive the flag read from $FLAG_PATH.",
+  "tech_stack": ["Node.js 20", "Express 4.21", "mongoose 8.22", "MongoDB 7.0"],
+  "tags": [
+    "nosqli",
+    "mongodb",
+    "operator-injection",
+    "auth-bypass",
+    "blind-injection",
+    "regex-oracle",
+    "cwe-943"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": {
+    "container_port": 8080,
+    "protocol": "http",
+    "http_path": "/login"
+  },
+  "inspired_by": "OWASP NoSQL injection guide and the classic HackTheBox 'MarketDump' operator-injection pattern"
+}
