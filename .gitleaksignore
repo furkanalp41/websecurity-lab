@@ -1,0 +1,9 @@
+# gitleaks false-positive suppressions (exact fingerprints only — nothing broad).
+#
+# sqli-error-based-extractvalue/SOLUTION.md line 135 showed an ILLUSTRATIVE example
+# `{"key": "<uuid>"}` (a made-up UUID in the teaching walkthrough, never a real
+# credential). gitleaks' generic-api-key rule flags the `key:` JSON shape by entropy.
+# HEAD has since been genericized to a placeholder, but the value is immutable in the
+# already-merged history commits below, so these fixed fingerprints stay ignored.
+867ceca9b3bd4ce1577540174539a57cddceef4c:labs/sqli/sqli-error-based-extractvalue/SOLUTION.md:generic-api-key:135
+bbd1efef9400418cb6d3280bf038a76d11e0f5cd:labs/sqli/sqli-error-based-extractvalue/SOLUTION.md:generic-api-key:135

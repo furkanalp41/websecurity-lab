@@ -17,10 +17,10 @@
           "Reading server-side error messages"
         ],
         "tech_stack": [
-          "PHP 8.3",
+          "Alpine 3.20",
           "Apache 2.4",
-          "SQLite 3.45",
-          "Alpine 3.20 base image"
+          "PHP 8.3",
+          "SQLite 3"
         ],
         "inspired_by": "The canonical PortSwigger 'SQL injection vulnerability allowing login bypass' lab plus classic OWASP WebGoat login examples"
       },
@@ -40,9 +40,9 @@
         "tech_stack": [
           "Python 3.12",
           "Flask 3.0",
-          "MySQL 8.4",
           "gunicorn 22",
-          "nginx 1.27 reverse proxy"
+          "PyMySQL 1.1",
+          "MySQL 8.4"
         ],
         "inspired_by": "PortSwigger 'SQL injection UNION attack, determining the number of columns' plus HackTheBox 'Cronos' walkthrough style"
       },
@@ -62,8 +62,8 @@
         "tech_stack": [
           "Python 3.12",
           "Flask 3.0",
-          "SQLAlchemy 2.0 Core (raw text())",
-          "PostgreSQL 16.4",
+          "SQLAlchemy 2.0 Core",
+          "PostgreSQL 16",
           "gunicorn 22"
         ],
         "inspired_by": "PortSwigger 'SQL injection vulnerability in an ORDER BY clause' plus real Postgres error-oracle patterns from Assetnote research"
@@ -82,11 +82,11 @@
           "Reading and shaping error banners"
         ],
         "tech_stack": [
-          "Node.js 20 LTS",
-          "Express 4.19",
-          "mysql2 3.11 (raw query)",
-          "MySQL 8.4",
-          "nginx 1.27"
+          "Python 3.12",
+          "Flask 3.0",
+          "gunicorn 22",
+          "PyMySQL 1.1",
+          "MySQL 8.4"
         ],
         "inspired_by": "Classic MySQL error-based technique originally documented by Reiners/awae, and countless bug bounty reports using EXTRACTVALUE"
       },
@@ -105,9 +105,9 @@
         ],
         "tech_stack": [
           "Go 1.23",
-          "chi router 5",
-          "SQLite 3.45 via mattn/go-sqlite3",
-          "Caddy 2.8 reverse proxy"
+          "chi router v5",
+          "SQLite 3 (mattn/go-sqlite3)",
+          "Alpine 3.20"
         ],
         "inspired_by": "PortSwigger 'SQL injection vulnerability in cookie parameter' lab"
       },
@@ -127,9 +127,9 @@
         "tech_stack": [
           "Python 3.12",
           "FastAPI 0.115",
-          "asyncpg 0.29 (parameterized elsewhere but vulnerable here)",
-          "PostgreSQL 15.8",
-          "uvicorn 0.30"
+          "uvicorn",
+          "asyncpg",
+          "PostgreSQL 16"
         ],
         "inspired_by": "PortSwigger 'Blind SQL injection with conditional responses' plus real bounty writeups on account-enumeration side channels"
       },
@@ -147,11 +147,11 @@
           "Tuning delay to network jitter"
         ],
         "tech_stack": [
-          "Node.js 20",
-          "Fastify 4.28",
-          "mysql2 3.11 (unsafe .query)",
-          "MySQL 8.4",
-          "nginx 1.27"
+          "Python 3.12",
+          "Flask 3.0",
+          "gunicorn 22",
+          "PyMySQL 1.1",
+          "MySQL 8.4"
         ],
         "inspired_by": "PortSwigger 'Blind SQL injection with time delays' and countless real-world analytics-endpoint bug reports"
       },
@@ -169,11 +169,11 @@
           "Chaining a write endpoint to a separate read endpoint"
         ],
         "tech_stack": [
-          "Ruby 3.3",
-          "Sinatra 4.0",
-          "Sequel 5.83 (raw dataset.with_sql)",
-          "MySQL 8.4",
-          "Puma 6.4"
+          "Python 3.12",
+          "Flask 3.0",
+          "gunicorn 22",
+          "PyMySQL 1.1",
+          "MySQL 8.4"
         ],
         "inspired_by": "PortSwigger 'SQL injection in User-Agent HTTP header' and Shopify H1 report #341876 style analytics-log SQLi"
       },
@@ -193,8 +193,9 @@
         "tech_stack": [
           "Python 3.12",
           "Django 5.1",
-          "PostgreSQL 16.4",
-          "gunicorn 22 + Whitenoise"
+          "gunicorn 22",
+          "PostgreSQL 16",
+          "psycopg 3"
         ],
         "inspired_by": "OWASP second-order canon plus the Shopify 2020 second-order profile-name writeup"
       },
@@ -224,8 +225,8 @@
         "slug": "sqli-limit-offset-postgres",
         "title": "Injection Inside LIMIT/OFFSET on Postgres",
         "difficulty": "practitioner",
-        "description": "A pagination endpoint accepts /feed?page=2&size=10. Both values are concatenated into 'LIMIT <size> OFFSET <n>' on Postgres 16. Because standard UNION SELECT syntactically cannot follow LIMIT before a semicolon, students must use a Postgres-specific technique: piggy-back an entire query via CTE-style rewrites or use UNION at the correct precedence with parenthesised subselects.",
-        "objective": "Craft a payload in the size or page parameter that returns rows from users where role='admin'. Extract admin.recovery_code (a 24-char string) and submit it to /solve?code=<value>.",
+        "description": "A pagination endpoint accepts /feed?page=2&size=10. Both values are concatenated into 'LIMIT <size> OFFSET <n>' on Postgres 16. A plain UNION SELECT cannot follow LIMIT/OFFSET in Postgres, so the exploit uses the fact that the LIMIT/OFFSET position accepts an arbitrary integer expression — including a scalar subquery: a subquery that CASTs the target value to an integer fails, and Postgres echoes the value verbatim inside the error message (an error oracle).",
+        "objective": "Craft a payload in the size or page parameter that leaks admin.recovery_code (a 24-char string) through the Postgres error oracle, then submit it to /solve?code=<value>.",
         "flag_hint": "/solve compares the code and returns flag from /flag.txt as JSON on success.",
         "skills_taught": [
           "LIMIT-clause injection nuances",
@@ -234,10 +235,11 @@
           "Reading SQL grammar to plan payload shape"
         ],
         "tech_stack": [
-          "Rust 1.82",
-          "axum 0.7",
-          "sqlx 0.8 (with raw format! misuse)",
-          "PostgreSQL 16.4"
+          "Python 3.12",
+          "Flask 3.0",
+          "SQLAlchemy 2.0 Core",
+          "PostgreSQL 16",
+          "gunicorn 22"
         ],
         "inspired_by": "PortSwigger's LIMIT-clause lab and Postgres-specific writeups by SecureLayer7"
       },
@@ -299,9 +301,12 @@
           "Reading OWASP CRS rule IDs"
         ],
         "tech_stack": [
-          "PHP 8.3",
-          "nginx 1.27 with ModSecurity 3.0 + OWASP CRS 4.0 (paranoia level 2)",
-          "MySQL 8.4"
+          "Python 3.12",
+          "Flask 3.0",
+          "gunicorn 22",
+          "PyMySQL 1.1",
+          "MySQL 8.4",
+          "in-app CRS-style keyword WAF"
         ],
         "inspired_by": "OWASP CRS bypass research by Christian Folini and the widely-shared 'sqli-labs' waf-bypass series"
       },
@@ -319,10 +324,11 @@
           "Iterative WAF-fuzz methodology"
         ],
         "tech_stack": [
-          "Go 1.23 custom WAF middleware",
-          "Node.js 20 backend on Express 4.19",
-          "MySQL 8.4",
-          "Caddy 2.8"
+          "Python 3.12",
+          "Flask 3.0",
+          "gunicorn 22",
+          "PyMySQL 1.1",
+          "MySQL 8.4"
         ],
         "inspired_by": "The wfuzz/ffuf community wordlists for space-less SQLi plus Rhino Security Labs bypass writeups"
       },
