@@ -6,6 +6,22 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### track-sqli-a — first SQLi labs (5)
+
+- Five new SQLi labs covering the core progression, each with a hardened non-root app AND
+  non-root database service (read_only, cap_drop ALL, no-new-privileges, pids/mem limits,
+  loopback-only port), exploit landing the flag in <1s, and a passing multi-container posture gate:
+  `sqli-order-by-numeric` (ORDER BY error-oracle, Postgres), `sqli-union-product-search`
+  (UNION, MySQL), `sqli-cookie-tracking-id` (cookie UNION, Go+SQLite),
+  `sqli-boolean-blind-account-enum` (boolean-blind, FastAPI+Postgres),
+  `sqli-second-order-registration` (second-order, Django+Postgres).
+- `scripts/check-posture.sh` now asserts the baseline on every container in a lab (app + DB);
+  CI passes all compose container ids.
+- Established the hardened non-root Postgres (user 70) and MySQL (user 999) multi-service patterns.
+- `packages/schema/enums.json`: added CWE-204 (Observable Response Discrepancy) and CWE-208.
+- `docs/tracks/sqli.md`: track charter; defers Windows-container / Oracle / Elasticsearch labs
+  as infeasible-as-specified (charter decision pending).
+
 ### ui-phase-1-shell — hub shell
 
 - Interactive level map (`/map`): SVG render of all 541 nodes from `map.generated.json` with

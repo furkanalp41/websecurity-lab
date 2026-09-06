@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "sqli-second-order-registration",
+  "title": "Second-Order SQL Injection via Stored Username",
+  "track": "sqli",
+  "difficulty": "practitioner",
+  "estimated_minutes": 35,
+  "max_lifetime_minutes": 60,
+  "learning_objectives": [
+    "Distinguish a safe parameterised INSERT from an unsafe raw query that re-uses stored input",
+    "Recognise a second-order SQL injection where the sink is far from the source",
+    "Balance quotes and comments so a payload stores cleanly yet re-splices as valid SQL",
+    "Craft a UNION SELECT that matches the referrals column count to exfiltrate a secret column"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-89"],
+  "prerequisites": ["sqli-login-bypass-basic"],
+  "flag_hint": "/solve compares ?secret to the admin account's per-container session_secret; on match it returns the flag from the flag file.",
+  "tech_stack": ["Python 3.12", "Django 5.1", "gunicorn 22", "PostgreSQL 16", "psycopg 3"],
+  "tags": ["sqli", "second-order", "stored-injection", "union-based", "django", "cwe-89"],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/me/referrals" },
+  "inspired_by": "Second-order (stored) SQL injection family — OWASP WSTG-INPV-05, PortSwigger stored/second-order SQLi write-ups"
+}

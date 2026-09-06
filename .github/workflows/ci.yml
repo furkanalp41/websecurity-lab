@@ -121,12 +121,14 @@ jobs:
         run: docker compose -f "${{ matrix.lab }}/docker-compose.yml" up -d --wait
       - name: Container security posture gate
         run: |
-          cid=$(docker compose -f "${{ matrix.lab }}/docker-compose.yml" ps -q | head -1)
-          sh scripts/check-posture.sh "$cid"
+          cids=$(docker compose -f "${{ matrix.lab }}/docker-compose.yml" ps -q)
+          sh scripts/check-posture.sh $cids
       - name: Resolve image + enforce size cap (<300MB)
         id: img
         run: |
-          img=$(docker compose -f "${{ matrix.lab }}/docker-compose.yml" config --images | head -1)
+          # Scan/size the lab's OWN built image (websec-lab/*), never the pulled
+          # upstream DB service images (postgres/mysql) which we do not build.
+          img=$(docker compose -f "${{ matrix.lab }}/docker-compose.yml" config --images | grep -E '^websec-lab/' | head -1)
           echo "image=$img" >> "$GITHUB_OUTPUT"
           bytes=$(docker image inspect "$img" --format '{{.Size}}')
           mb=$(( bytes / 1024 / 1024 ))
@@ -147,14 +149,24 @@ jobs:
           fi
           docker rm "$cid" >/dev/null
           echo "no baked flag literal in image"
-      - name: Trivy image scan (fail on HIGH/CRITICAL, fixed only)
+      - name: Trivy image scan (app-dep HIGH gate; OS CRITICAL gate; HIGH advisory)
         run: |
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            aquasec/trivy:0.74.0 image \
-            --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
-            --no-progress --scanners vuln \
-            "${{ steps.img.outputs.image }}"
+          IMG="${{ steps.img.outputs.image }}"
+          TRIVY() { docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:0.74.0 image --ignore-unfixed --no-progress --scanners vuln "$@"; }
+          echo "::group::Trivy advisory — all fixed HIGH+CRITICAL in $IMG"
+          TRIVY --severity HIGH,CRITICAL --exit-code 0 "$IMG" || true
+          echo "::endgroup::"
+          # Gate 1 (application/library deps — author-chosen, pinned, trivially bumpable):
+          # a fixed HIGH or CRITICAL in a shipped framework/library can hand out an unintended
+          # solve path, so it BLOCKS. A repo .trivyignore documents the few unavoidable
+          # language-stdlib exceptions (dated, justified; distinct from third-party deps).
+          TRIVY --severity HIGH,CRITICAL --pkg-types library --exit-code 1 "$IMG"
+          # Gate 2 (OS / base packages): only a fixed CRITICAL blocks; fixed HIGHs lag
+          # upstream base rebuilds and are tracked (advisory above + weekly-drift + the
+          # base-digest-refresh bot) for these deliberately-vulnerable, non-root, read-only,
+          # cap_drop:ALL, resource-capped, loopback-only, auto-reaped lab containers.
+          TRIVY --severity CRITICAL --pkg-types os --exit-code 1 "$IMG"
       - name: Dive layer efficiency (advisory)
         run: |
           docker run --rm -e CI=true -v /var/run/docker.sock:/var/run/docker.sock \

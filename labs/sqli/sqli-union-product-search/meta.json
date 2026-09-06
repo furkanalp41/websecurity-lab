@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "sqli-union-product-search",
+  "title": "UNION-Based Extraction on Vintage Vinyl Store",
+  "track": "sqli",
+  "difficulty": "apprentice",
+  "estimated_minutes": 25,
+  "max_lifetime_minutes": 30,
+  "learning_objectives": [
+    "Recognise UNION-based SQL injection in a single-quoted WHERE clause",
+    "Determine the required column count and datatypes for a UNION SELECT",
+    "Use verbose database errors to enumerate column count and types",
+    "Exfiltrate a value from a second table (admin_notes) and submit it to win"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-89", "CWE-209"],
+  "prerequisites": ["sqli-login-bypass-basic"],
+  "flag_hint": "/solve compares ?token to admin_notes.secret; on match it returns the flag read from the flag file, otherwise HTTP 403.",
+  "tech_stack": ["Python 3.12", "Flask 3.0", "gunicorn 22", "PyMySQL 1.1", "MySQL 8.4"],
+  "tags": ["sqli", "union-based", "error-based", "mysql", "cwe-89", "cwe-209"],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/search" },
+  "inspired_by": "PortSwigger 'SQL injection UNION attack, determining the number of columns' + classic error-based MySQL extraction patterns"
+}
