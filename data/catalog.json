@@ -203,13 +203,13 @@
         "slug": "sqli-json-body-prisma-raw",
         "title": "Prisma $queryRaw Concatenation in a JSON API",
         "difficulty": "practitioner",
-        "description": "A modern TypeScript API accepts POST /api/reports with a JSON body {\"filter\":{\"status\":\"open\"}}. A hurried developer used prisma.$queryRawUnsafe with template concatenation to build 'SELECT * FROM reports WHERE status = ' plus the JSON value. Because Prisma is typically 'safe by default', many practitioners forget that $queryRawUnsafe is essentially string concat.",
+        "description": "A modern TypeScript API accepts POST /api/reports with a JSON body {\"filter\":{\"status\":\"open\"}}. A hurried developer used prisma.$queryRawUnsafe with template concatenation to build 'SELECT id, title, status FROM reports WHERE status = ' plus the JSON value. Because Prisma is typically 'safe by default', many practitioners forget that $queryRawUnsafe is essentially string concat.",
         "objective": "Inject via the JSON status field to pull rows from the confidential 'audit_logs' table and locate the row whose action='FLAG_ISSUE'. Submit its id (an integer) to POST /solve as {\"id\":<n>}.",
         "flag_hint": "/solve reads /flag.txt when the id matches the seeded audit-log row id.",
         "skills_taught": [
           "Recognising unsafe ORM escapes",
           "Injection through JSON body values",
-          "Postgres UNION with jsonb columns",
+          "Postgres UNION matching the text column list",
           "Distinguishing $queryRaw from $queryRawUnsafe"
         ],
         "tech_stack": [

@@ -1,5 +1,7 @@
 # Solution — sqli-rails-active-record-hash
 
+> **OWASP:** A03:2021-Injection · **CWE:** CWE-89 · **CVE:** N/A — this lab teaches the vulnerability class, not a specific product CVE.
+
 ## What tipped you off
 
 `/reports?sort=id asc` and `?sort=id desc` change which record is returned first,
@@ -82,6 +84,19 @@ finishes inside the platform's 60-second exploit budget. The technique is identi
 for any length. `/solve` reads the flag file directly in Ruby (`File.read`); it does
 **not** shell out to a `give-flag.sh`, which would hand an attacker a command
 primitive — reading the file in-process is the safer established pattern here.
+
+## Alternative payload vectors
+
+`Arel.sql` drops you into a raw `ORDER BY`, and Postgres will order by any
+expression — at least three oracle shapes read one bit per request from the row
+ordering:
+
+1. **CASE flip** (used by the exploit): `(CASE WHEN (<cond>) THEN reports.id ELSE -reports.id END) asc` — the first row flips between the lowest and highest id.
+2. **Boolean-direct**: `((SELECT ascii(substr(master_key,POS,1)) FROM secrets ORDER BY id LIMIT 1) >= VAL) desc` — Postgres sorts booleans (false < true), so a TRUE condition floats a known row to the top.
+3. **Two-key block sort**: `(CASE WHEN (<cond>) THEN 0 ELSE 1 END), id asc` — the 0/1 primary key moves the whole matching block to the front.
+4. **NULLS ordering**: `(CASE WHEN (<cond>) THEN 1 END) asc nulls last` — matching rows sort ahead of the NULLs.
+
+All four extract the same way; `tests/exploit.py` uses vector 1.
 
 ## Fix
 

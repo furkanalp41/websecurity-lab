@@ -31,13 +31,13 @@ class ReportsController < ApplicationController
 
   private
 
-  # Strong parameters DO protect the filter surface: only :status and :category
-  # are permitted, and hash conditions are always bound by the adapter.
+  # Strong parameters DO protect the filter surface: only :status (a real column)
+  # is permitted, and hash conditions are always bound by the adapter.
   def filter_params
     raw = params[:filter]
     return {} unless raw.respond_to?(:permit)
 
-    raw.permit(:status, :category).to_h
+    raw.permit(:status).to_h
   end
 
   # VULNERABILITY (CWE-89): raw, attacker-controlled ORDER BY. Wrapping the param

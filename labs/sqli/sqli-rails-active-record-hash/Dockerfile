@@ -16,8 +16,10 @@ ENV LANG=C.UTF-8 \
     # Compile the `pg` gem from source so its C extension links against the
     # system libpq (libpq-dev here / libpq5 at runtime). The precompiled
     # x86_64-linux fat gem instead ships a private "libpq-ruby-pg.so.1" that our
-    # image slimming strips, leaving pg_ext.so unable to resolve it. The Gemfile
-    # is nokogiri-free, so forcing the ruby platform only rebuilds pg + puma.
+    # image slimming strips, leaving pg_ext.so unable to resolve it. Forcing the
+    # ruby platform recompiles the native gems from source (pg + puma, and the
+    # nokogiri that actionpack pulls in transitively — it vendors its own libxml2),
+    # all supported by the build-essential toolchain installed above.
     BUNDLE_FORCE_RUBY_PLATFORM=1
 
 RUN apt-get update \

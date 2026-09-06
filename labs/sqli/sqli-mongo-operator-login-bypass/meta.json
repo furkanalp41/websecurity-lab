@@ -32,7 +32,7 @@
   "exposed_service": {
     "container_port": 8080,
     "protocol": "http",
-    "http_path": "/login"
+    "http_path": "/"
   },
   "inspired_by": "OWASP NoSQL injection guide and the classic HackTheBox 'MarketDump' operator-injection pattern"
 }

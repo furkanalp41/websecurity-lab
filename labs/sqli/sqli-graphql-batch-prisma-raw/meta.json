@@ -11,7 +11,7 @@
     "Recognise prisma.$queryRawUnsafe as a string-concatenation SQL sink (CWE-89) versus the safe tagged-template $queryRaw",
     "Turn a GraphQL string argument into a boolean-blind oracle via a cross-table sub-select",
     "Exploit GraphQL alias batching to fire hundreds of blind probes per HTTP round-trip",
-    "Reconstruct a 40-character secret from per-alias row-presence and reason about resolver-level rate limits"
+    "Reconstruct a 40-character secret from per-alias row-presence and see how the absence of query-depth/complexity limits lets alias-batching amplify the attack"
   ],
   "owasp_categories": ["A03:2021-Injection"],
   "cwe_ids": ["CWE-89"],

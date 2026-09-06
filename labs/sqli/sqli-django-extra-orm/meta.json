@@ -21,6 +21,10 @@
   "tags": ["sqli", "union-based", "django", "orm", "extra", "raw-sql", "cwe-89", "postgres"],
   "risk": "low",
   "authors": ["furkanalp41"],
-  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/search" },
+  "exposed_service": {
+    "container_port": 8080,
+    "protocol": "http",
+    "http_path": "/"
+  },
   "inspired_by": "Django ORM escape-hatch SQL injection (QuerySet.extra/.raw/RawSQL) and the 'an ORM won't save you' code-review lesson; Django security advisories in the .extra()/.explain() family (CVE-2022-28347, CVE-2022-34265)"
 }
