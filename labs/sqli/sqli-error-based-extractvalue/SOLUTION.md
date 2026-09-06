@@ -132,7 +132,7 @@ Reassemble → `d3b07384-d113-4ec8-a1a6-1234567890ab`, then trade it for the fla
 
 ```
 POST /solve   Content-Type: application/json
-{"key": "d3b07384-d113-4ec8-a1a6-1234567890ab"}
+{"key": "<the api_key you reassembled above>"}
 -> 200  FLAG{...}
 ```
 
