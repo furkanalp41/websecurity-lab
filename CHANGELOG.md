@@ -6,6 +6,19 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### chore-catalog-reconcile — catalog honesty + drift guardrail
+
+- Reconciled `data/catalog.json` `tech_stack` for all 12 implemented labs to match each
+  lab's shipped `meta.json` (track-a stays diverse as built; the 6 track-b labs are Flask),
+  per the operator's Hybrid re-platform ruling (future feasible labs default to Flask +
+  MySQL/Postgres; stack diversity revisited later for select flagship tracks).
+- Fixed `sqli-limit-offset-postgres`'s catalog description/objective, which described a
+  post-`LIMIT` `UNION` (forbidden in Postgres) rather than the shipped scalar-subquery error oracle.
+- `scripts/build-catalog.ts`: new gate — an implemented lab whose catalog `tech_stack` differs
+  from its `meta.json` now fails the build (exact array equality), so the two cannot silently
+  drift again. Unbuilt catalog entries keep their aspirational stack freely. Resolves the
+  track-a/-b `tech_stack`-drift follow-up.
+
 ### track-sqli-b — SQLi labs 7–12 (6)
 
 - Six new SQLi labs extending the track into new injection techniques, contexts, and surfaces —

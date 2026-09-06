@@ -36,6 +36,7 @@ interface CatalogLab {
   slug: string;
   title: string;
   difficulty: string;
+  tech_stack?: string[];
 }
 interface CatalogGroup {
   category: string;
@@ -49,12 +50,14 @@ interface Meta {
   difficulty: string;
   owasp_categories: string[];
   cwe_ids: string[];
+  tech_stack: string[];
   [k: string]: unknown;
 }
 
 // ---- load authoritative catalog + build slug -> category index ----
 const catalog = readJson(CATALOG) as CatalogGroup[];
 const slugToCategory = new Map<string, string>();
+const slugToLab = new Map<string, CatalogLab>();
 const slugCounts = new Map<string, number>();
 let catalogTotal = 0;
 for (const group of catalog) {
@@ -62,6 +65,7 @@ for (const group of catalog) {
     catalogTotal += 1;
     slugCounts.set(lab.slug, (slugCounts.get(lab.slug) ?? 0) + 1);
     if (!slugToCategory.has(lab.slug)) slugToCategory.set(lab.slug, group.category);
+    if (!slugToLab.has(lab.slug)) slugToLab.set(lab.slug, lab);
   }
 }
 console.log(`catalog: ${catalogTotal} labs across ${catalog.length} categories`);
@@ -153,6 +157,23 @@ for (const file of metaFiles) {
       `ERROR ${rel}: track "${meta.track}" != catalog category "${slugToCategory.get(meta.id)}"`,
     );
     errors += 1;
+  }
+
+  // implemented-lab tech_stack must match the authoritative catalog. Hybrid policy:
+  // data/catalog.json is reconciled to each implemented lab's SHIPPED stack, and this
+  // gate keeps the two from silently drifting apart again (the track-a/-b follow-up).
+  // Exact array equality; only enforced for labs that are actually implemented (have a
+  // meta.json), so unbuilt catalog entries keep their aspirational stack freely.
+  const catLab = slugToLab.get(meta.id);
+  if (catLab) {
+    const catTs = JSON.stringify(catLab.tech_stack ?? null);
+    const metaTs = JSON.stringify(meta.tech_stack ?? null);
+    if (catTs !== metaTs) {
+      console.error(
+        `ERROR ${rel}: tech_stack drift vs data/catalog.json — meta ${metaTs} != catalog ${catTs} (reconcile the catalog entry for this implemented lab)`,
+      );
+      errors += 1;
+    }
   }
 
   // enum membership
