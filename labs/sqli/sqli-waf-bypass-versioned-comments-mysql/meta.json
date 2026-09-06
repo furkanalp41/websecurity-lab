@@ -1,0 +1,33 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "sqli-waf-bypass-versioned-comments-mysql",
+  "title": "WAF Bypass with MySQL Versioned Comments",
+  "track": "sqli",
+  "difficulty": "practitioner",
+  "estimated_minutes": 28,
+  "max_lifetime_minutes": 30,
+  "learning_objectives": [
+    "Recognise that a whole-word keyword blocklist is not a SQL injection defence",
+    "Hide SQL keywords inside MySQL versioned comments (/*!NNNNN...*/) to evade a regex WAF",
+    "Re-balance a LIKE string literal without using a blocked '-- ' or '#' comment terminator",
+    "Use /waf-log to confirm which OWASP-CRS-style rules fire before and after the bypass"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-89"],
+  "prerequisites": ["sqli-union-product-search"],
+  "flag_hint": "Leak secrets.waf_bypass_flag with a versioned-comment UNION that evades the WAF, then GET /solve?flag=<value> (or ?token=<value>) returns the flag read from the flag file on a match; /waf-log shows which rules fired for debugging.",
+  "tech_stack": [
+    "Python 3.12",
+    "Flask 3.0",
+    "gunicorn 22",
+    "PyMySQL 1.1",
+    "MySQL 8.4",
+    "in-app CRS-style keyword WAF"
+  ],
+  "tags": ["sqli", "waf-bypass", "union-based", "versioned-comments", "mysql", "cwe-89"],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/search" },
+  "inspired_by": "OWASP CRS bypass research by Christian Folini and the widely-shared 'sqli-labs' waf-bypass series"
+}

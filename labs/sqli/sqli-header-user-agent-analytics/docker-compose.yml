@@ -1,0 +1,115 @@
+# SPDX-License-Identifier: MIT
+name: websec-lab-sqli-header-user-agent-analytics
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: websec-lab/sqli-header-user-agent-analytics:dev
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      LAB_USER_SECRET: ${LAB_USER_SECRET:?LAB_USER_SECRET is required}
+      FLAG_PATH: /var/lib/lab/flag.txt
+      DB_HOST: db
+      DB_PORT: '3306'
+      DB_NAME: analytics
+      DB_USER: dashapp
+      DB_PASSWORD: dash-app-pw
+    # labctl rewrites this to 127.0.0.1:<allocated>:8080 at launch; :0 = ephemeral for local/CI.
+    ports:
+      - '127.0.0.1:${LAB_HOST_PORT:-0}:8080'
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+      - /var/lib/lab:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
+    pids_limit: 200
+    ulimits:
+      nofile:
+        soft: 1024
+        hard: 2048
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen(''http://127.0.0.1:8080/health'').read()==b''ok'' else 1)" || exit 1'
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+    networks:
+      - labnet
+
+  db:
+    image: mysql:8.4@sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb
+    # Run mysqld as the non-root mysql uid (999). The tmpfs data/socket dirs below
+    # are owned by 999 so the server can initialise a fresh datadir on every start
+    # despite the read-only root filesystem.
+    user: '999:999'
+    # Trim MySQL's footprint so the whole service (RSS + tmpfs datadir) fits inside
+    # mem_limit, and shrink the on-disk (tmpfs) datadir: tiny redo log, no binlog,
+    # performance_schema off, a small buffer pool.
+    command:
+      - mysqld
+      - --skip-name-resolve
+      - --skip-log-bin
+      - --performance-schema=OFF
+      - --innodb-buffer-pool-size=64M
+      - --innodb-redo-log-capacity=16M
+    environment:
+      MYSQL_ROOT_PASSWORD: dash-root-pw
+      MYSQL_DATABASE: analytics
+      MYSQL_USER: dashapp
+      MYSQL_PASSWORD: dash-app-pw
+    read_only: true
+    tmpfs:
+      - /var/lib/mysql:uid=999,gid=999,mode=0700,size=256m
+      - /run/mysqld:uid=999,gid=999,mode=0700,size=16m
+      - /tmp:size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
+    pids_limit: 200
+    healthcheck:
+      # `mysqladmin ping` exits 0 whenever the server answers the TCP handshake
+      # (even on access-denied), which is exactly the "is it alive" signal we want.
+      # During init the temp server uses --skip-networking, so TCP only answers
+      # once the real server is up AND the databases/users have been created.
+      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 40
+      start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+    networks:
+      - labnet
+
+networks:
+  labnet:
+    name: websec-lab_sqli-header-user-agent-analytics_net
+    driver: bridge
+    # Dedicated per-lab bridge. Not `internal: true`: Docker disables host port
+    # publishing on internal networks, and the learner reaches the app via its
+    # published 127.0.0.1 port. The DB publishes no ports at all.
+    internal: false

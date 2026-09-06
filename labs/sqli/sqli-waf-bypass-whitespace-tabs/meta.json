@@ -1,0 +1,26 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "sqli-waf-bypass-whitespace-tabs",
+  "title": "Whitespace-Filter WAF Bypass Ladder",
+  "track": "sqli",
+  "difficulty": "practitioner",
+  "estimated_minutes": 30,
+  "max_lifetime_minutes": 30,
+  "learning_objectives": [
+    "Explain why stripping spaces and tabs is not a sound defence against SQL injection",
+    "Reach a MySQL backend with zero 0x20 space bytes using /**/ comments, %0a newlines, and parentheses",
+    "Use a byte-echo debug oracle to confirm exactly what a request filter forwards",
+    "Chain a whitespace-free UNION SELECT to exfiltrate a row a filter tried to hide"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-89"],
+  "prerequisites": ["sqli-union-product-search"],
+  "flag_hint": "/solve compares ?email to the hidden admin row's email (users where id=1); on an exact match it returns the flag read from the flag file, otherwise HTTP 403.",
+  "tech_stack": ["Python 3.12", "Flask 3.0", "gunicorn 22", "PyMySQL 1.1", "MySQL 8.4"],
+  "tags": ["sqli", "waf-bypass", "whitespace", "union-based", "numeric-context", "mysql", "cwe-89"],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/lookup" },
+  "inspired_by": "PortSwigger 'SQL injection with filter bypass' family + classic WAF whitespace-blacklist evasions (/**/ comments, %0a newlines, parentheses) documented in OWASP and sqlmap tamper scripts"
+}
