@@ -1,0 +1,16 @@
+{
+  "type": "batch-review-request",
+  "batch_id": "track-sqli-a",
+  "branch": "build/track-sqli-a",
+  "working_dir": "/home/vlad/websecurity-lab",
+  "pr_url": "https://github.com/furkanalp41/websecurity-lab/pull/3",
+  "base_commit": "fcd52cf892de8e28ab4979ee248b170f855a8617",
+  "head_commit": "60d3de9",
+  "labs_included": [
+    { "id": "sqli-order-by-numeric", "difficulty": "apprentice", "solve_seconds": 0.2 },
+    { "id": "sqli-union-product-search", "difficulty": "apprentice", "solve_seconds": 0.1 },
+    { "id": "sqli-cookie-tracking-id", "difficulty": "apprentice", "solve_seconds": 0.1 },
+    { "id": "sqli-boolean-blind-account-enum", "difficulty": "practitioner", "solve_seconds": 0.8 },
+    { "id": "sqli-second-order-registration", "difficulty": "practitioner", "solve_seconds": 0.5 }
+  ]
+}

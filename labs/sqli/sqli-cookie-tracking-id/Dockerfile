@@ -1,14 +1,13 @@
 # SPDX-License-Identifier: MIT
-# Multi-stage build: compile the CGO SQLite app on golang:1.23-alpine, then run a
+# Multi-stage build: compile the CGO SQLite app on golang:1.25-alpine, then run a
 # fully static binary on a minimal non-root alpine. Digest-pinned bases; no baked
 # flag (entrypoint.sh writes the per-container flag at runtime).
 
-FROM golang:1.24-alpine@sha256:8bee1901f1e530bfb4a7850aa7a479d17ae3a18beb6e09064ed54cfd245b7191 AS build
+FROM golang:1.25-alpine@sha256:1ae0735f00daffa3aaf1363a5184c0d2dc55c78e3db4ec70241cdac97bf84b59 AS build
 # build-base supplies gcc + musl-dev so cgo (mattn/go-sqlite3) can compile.
 RUN apk add --no-cache build-base
+# Default -mod=readonly + committed go.sum verify module checksums at build time.
 ENV CGO_ENABLED=1 \
-    GOFLAGS=-mod=mod \
-    GOSUMDB=off \
     GOTOOLCHAIN=local
 WORKDIR /src
 COPY src/ ./
