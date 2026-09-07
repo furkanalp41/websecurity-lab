@@ -27,8 +27,8 @@ declare(strict_types=1);
  */
 function waf_inspect(string $value): void
 {
-    // Decode once, the way a WAF sees the parameter after transport decoding, and
-    // fold case so keyword casing tricks alone do not evade the ruleset.
+    // Inspect the parameter as the WAF sees it after transport decoding. Casing
+    // tricks are handled per-rule by the /i flag below, not by folding case here.
     $v = $value;
 
     // Each rule is [id, human-readable message, PCRE]. The patterns intentionally
