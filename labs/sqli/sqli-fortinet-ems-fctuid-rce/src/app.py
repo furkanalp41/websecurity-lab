@@ -104,16 +104,20 @@ def register() -> Response:
             json.dumps({"ok": False, "blocked_by": "acme-ips", "rule": hit[0]}),
             mimetype="application/json", status=403,
         )
+    # `hostname` is BOUND as a parameter, not concatenated — X-FCTUID is the sole
+    # injection point, and it is IPS-guarded. Without this the IPS would only
+    # cover one of two injectable inputs, letting a learner sidestep the whole
+    # table-source-COPY tradecraft the lab exists to teach (AUDITOR BL-1).
     hostname = request.headers.get("X-FCT-Host", "unknown")
     sql = (
         "INSERT INTO devices (fctuid, hostname, registered_at) VALUES ('"
-        + fctuid + "', '" + hostname + "', now())"
+        + fctuid + "', %s, now())"
     )
     conn = None
     try:
         conn = connect()
         with conn.cursor() as cur:
-            cur.execute(sql)
+            cur.execute(sql, (hostname,))
     except Exception as e:  # noqa: BLE001 -- surface DB error (helpful early)
         return Response(json.dumps({"ok": False, "error": str(e)}),
                         mimetype="application/json", status=200)
@@ -160,7 +164,8 @@ def solve() -> Response:
     except OSError:
         return Response(json.dumps({"ok": False, "error": "flag unavailable"}),
                         mimetype="application/json", status=500)
-    if submitted and submitted == expected:
+    import hmac as _hmac  # constant-time comparison (align with copy-program/moveit)
+    if submitted and _hmac.compare_digest(submitted, expected):
         return Response(json.dumps({"ok": True, "flag": expected}),
                         mimetype="application/json")
     return Response(json.dumps({"ok": False, "error": "incorrect flag"}),

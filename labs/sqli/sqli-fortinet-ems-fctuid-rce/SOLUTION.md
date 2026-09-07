@@ -21,10 +21,16 @@ sysadmin" misconfiguration the CVE hinges on. `src/app.py`:
 ```python
 fctuid = request.headers.get("X-FCTUID", "")
 if ips_block(fctuid): return 403
+hostname = request.headers.get("X-FCT-Host", "unknown")
 sql = ("INSERT INTO devices (fctuid, hostname, registered_at) "
-       "VALUES ('" + fctuid + "', '" + hostname + "', now())")
-cur.execute(sql)      # psycopg2 .execute() runs multiple ';' statements
+       "VALUES ('" + fctuid + "', %s, now())")
+cur.execute(sql, (hostname,))   # psycopg2 .execute() runs multiple ';' statements
 ```
+
+Only `X-FCTUID` is concatenated (and it is the IPS-guarded input). `X-FCT-Host` is
+**bound** as a parameter — so it is not a second, unfiltered injection point that
+would let a learner sidestep the IPS entirely. The lab's headline lesson (evade
+the naive keyword IPS with a table-source `COPY`) has to actually apply.
 
 psycopg2 `.execute()` uses the simple query protocol, so a stacked statement runs
 after the audit insert.
