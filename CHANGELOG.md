@@ -6,6 +6,26 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### track-sqli-d-layerslider — unauthenticated time-blind SQLi in a WP-style plugin (1, first PHP/WAF lab)
+
+- `sqli-layerslider-unauth-time-blind` (**elite**): the first lab on the **PHP 8.2 / Apache 2.4 /
+  MariaDB 11.4** stack (Alpine, 26 MB) and the first with a **WAF-bypass** dimension. Unauthenticated
+  time-based blind SQLi through a WordPress-style `admin-ajax.php` action, abstracting **CVE-2024-2879
+  (LayerSlider)**. Reproduces the `wpdb::prepare()` concatenation footgun (a query interpolated with no
+  `%d` placeholder is not parameterised); the endpoint is a pure timing oracle (body/status/headers never
+  vary); a ~300-LOC hand-written WP shim plus an app-level CRS-paranoia-1 SQLi-filter homage and a per-IP
+  token-bucket rate limiter. Intended exploit bypasses the filter with `SLEEP/**/(` (inline comment breaks
+  the `SLEEP(` rule; MariaDB accepts the comment as whitespace) and `0x61646d696e` (hex `admin`, no quotes),
+  binary-searches `wp_users.user_pass` parallelised across positions, and lands the flag in ~15–25 s.
+- Hardened non-root **app + non-root DB** (mysql uid 999, tmpfs datadir); posture gate, both Trivy gates
+  (library + OS, clean — no composer deps), `<300 MB` (26 MB), no-baked-flag, digest-pinned bases all green.
+- `user_pass` is a random 16-hex per-container token (not a 34-char phpass hash) so the rate-limited
+  time-based extraction clears the `<60 s` gate — technique identical at any length (documented in SOLUTION).
+- **Catalog reconcile (Hybrid policy)**: `sqli-layerslider-unauth-time-blind` `tech_stack` updated to the
+  shipped stack (Alpine 3.20; app-level CRS-baseline filter in place of a full ModSecurity+CRS sidecar) so
+  the meta↔catalog drift-lint stays green; `objective`/`flag_hint` corrected to the real `POST /solve
+{"hash":...}` mechanism (no `give-flag.sh`). Takes the track to **19/25** implemented.
+
 ### chore-sqli-c-docs — docs/metadata polish for track-sqli-c (AUDITOR BL-1..BL-8)
 
 - **BL-1**: `sqli-json-body-prisma-raw` and `sqli-rails-active-record-hash` SOLUTION.md now list ≥3 distinct payload vectors each.
