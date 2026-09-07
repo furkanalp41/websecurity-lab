@@ -546,7 +546,7 @@
           "PostgreSQL 16.15 (running as superuser)",
           "Docker Compose"
         ],
-        "inspired_by": "The 2019 Adrien Peter DEF CON talk on Postgres COPY-FROM-PROGRAM and subsequent HackerOne reports (e.g. GitLab #827052)"
+        "inspired_by": "Adrien Peter's Postgres COPY FROM PROGRAM RCE research and subsequent HackerOne reports (e.g. GitLab #827052); abstracted, no vendor code reproduced"
       }
     ]
   },
