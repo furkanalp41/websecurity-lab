@@ -1,0 +1,37 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "sqli-elasticsearch-dsl-painless",
+  "title": "Elasticsearch DSL Injection to Cross-Index Read",
+  "track": "sqli",
+  "difficulty": "expert",
+  "estimated_minutes": 50,
+  "max_lifetime_minutes": 90,
+  "learning_objectives": [
+    "Recognise NoSQL/query-DSL injection as the same class of flaw as classic SQLi",
+    "Spot an app that forwards a user-supplied JSON body verbatim into a search DSL",
+    "Widen the search scope via a multi-index request or an _index term filter to reach an index the app never meant to expose",
+    "Understand Painless script_fields (and the sandbox limits that make cross-index reads via script alone infeasible in 8.x)",
+    "Reason about response filtering: script_fields returns fields the app did not select for"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-943", "CWE-89"],
+  "prerequisites": ["sqli-mongo-operator-login-bypass"],
+  "flag_hint": "Widen the app's search scope to reach the hidden .credentials index, extract secret_key for doc id 'flag', then POST /solve {\"secret_key\":\"<value>\"} to receive the flag.",
+  "tech_stack": [
+    "Node.js 20",
+    "Fastify 5.12",
+    "Elasticsearch 8.15.5",
+    "@elastic/elasticsearch 8.15.3 client"
+  ],
+  "tags": ["nosql", "dsl-injection", "elasticsearch", "painless", "cross-index", "cwe-943"],
+  "risk": "low",
+  "resource_tier": "heavy",
+  "authors": ["furkanalp41"],
+  "exposed_service": {
+    "container_port": 8080,
+    "protocol": "http",
+    "http_path": "/"
+  },
+  "inspired_by": "The 2020 Snyk research on ES DSL injection and CVE-2015-1427 (Groovy sandbox escape) spiritually updated for 8.x Painless \u2014 abstracted, no vendor code reused"
+}

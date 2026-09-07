@@ -6,6 +6,55 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### track-sqli-d-heavy-infra-plus-es — heavy-tier CI/schema + first heavy lab (Elasticsearch DSL)
+
+Shared infra + a real heavy consumer, per AUDITOR's design-preflight PASS (C1+C3+C5).
+
+**Infra:**
+
+- `labctl/src/schemas/meta.schema.json`: new optional `resource_tier: 'standard' | 'heavy'` field
+  (defaults to 'standard' when absent, so all 22 shipped labs are unchanged). Orthogonal to `risk`
+  (risk = security posture, tier = resource budget) — schema addition, no conditional coupling.
+- `.github/workflows/ci.yml`: `discover-labs` now partitions every discovered meta.json into
+  standard vs heavy by `resource_tier` (jq: `.resource_tier // "standard"`). The PR-blocking
+  `docker-lab-matrix` still consumes the standard partition unchanged — zero regression for the 22
+  shipped labs. **C1 completeness assertion**: fails the run if any lab lands in neither partition
+  (typo'd `resource_tier`, jq hiccup) so a lab is NEVER silently tested nowhere.
+- `.github/workflows/heavy-nightly.yml` (new): nightly (`0 3 * * *`) + `workflow_dispatch`, NEVER
+  push/PR. Mirrors the standard matrix steps 1:1 with tier-relaxed numeric limits (`timeout-minutes:
+45`, image size cap 4096 MB, exploit `--timeout 180`, compose `--wait-timeout 300`) — every
+  posture rule identical (non-root, ReadonlyRootfs, cap_drop:ALL, no-new-privileges, loopback-only,
+  digest-pinned, own-image Trivy 2-gate). Concurrency guard prevents manual+cron collision. **C3
+  rolling-issue-on-failure**: on any red run, opens OR comments on a single deduped issue titled
+  "heavy-nightly: red run" via `github-script` — visible failures without per-night spam.
+- `scripts/build-catalog.ts`: added `resource_tier` to `CatalogLab` and `Meta` interfaces + a
+  drift-lint check mirroring the tech_stack policy (catalog and meta must agree).
+
+**First heavy lab (C5: real consumer, not a stub):**
+
+- `sqli-elasticsearch-dsl-painless` (**expert**, `resource_tier: heavy`): NoSQL/query-DSL injection
+  in a Node/Fastify log-search that spreads a caller-supplied JSON body over the ES client call:
+  `es.search({ index: "logs", ...body })`. JS object-spread has right-side precedence — a body-level
+  `index` key overrides the intended `"logs"` scope, so `{"index":".credentials","query":{...}}`
+  reveals the hidden credentials doc's `secret_key`. Submit to `/solve`.
+- Painless deviation (documented in SOLUTION): 8.x sandbox blocks `java.io`/`Runtime`/cross-index
+  reads from within a script, so the aspirational "script_fields to cross-index" is technically
+  infeasible; the honest primitive is DSL index-scope injection. Painless remains a companion
+  field-extraction vector.
+- ES-specific hardening deviation (documented): rootfs stays `read_only: true`; the compose
+  entrypoint copies the shipped ES config to a writable tmpfs and sets `ES_PATH_CONF` at it (ES
+  needs a writable keystore dir at startup). `/tmp` mounted `exec` because JNA `mmap+exec`s
+  native libraries.
+- Verified clean-room: fresh build, posture BOTH containers (app uid 10001, es uid 1000 — non-root
+  under `cap_drop:ALL` + `read_only` + `no-new-privileges`), app image 154 MB, ES image ~1.2 GB
+  (heavy-cap 4096), both Trivy gates green on the own app image (Fastify 5.12 / ES client 8.15.3 —
+  0 vulns), no-baked-flag, digest-pinned, exploit exit 0 in ~0.1 s, checker solved.
+- **Partition end-to-end verified**: 22 standard + 1 heavy = 23 total (partition complete). ES lab
+  is scoped to the heavy matrix; the 22 shipped labs are untouched by this batch.
+- **Catalog reconcile (Hybrid)**: `tech_stack` → shipped Fastify 5.12 / ES 8.15.5 / client 8.15.3;
+  `resource_tier: heavy` added; `objective`/`flag_hint` → the real body-spread scope-widening chain.
+  Takes the track to **23/25**.
+
 ### track-sqli-d-fortinet — header SQLi → RCE with OOB exfil (1, first OOB/IPS-evasion lab)
 
 - `sqli-fortinet-ems-fctuid-rce` (**elite**): abstracts **CVE-2023-48788 (FortiClient EMS)**. The

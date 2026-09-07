@@ -79,6 +79,21 @@ Node-alpine multi-stage with the bundled npm stripped from the runtime; Ruby-sli
 with `pg` compiled from source and the stale default `resolv` gemspec dropped) are
 documented in each lab's `SOLUTION.md` and the `CHANGELOG`.
 
+### batch/track-sqli-d-heavy-infra-plus-es (this batch — infra + 1 heavy lab)
+
+- **Shared infra:** new `resource_tier: 'standard' | 'heavy'` optional field in meta.schema.json;
+  ci.yml `discover-labs` now partitions labs by that field (C1 completeness assertion); new
+  `.github/workflows/heavy-nightly.yml` runs the heavy partition on cron (03:00 UTC) +
+  workflow_dispatch, with C3 rolling-issue-on-failure via `github-script`. Standard matrix
+  unchanged — all 22 shipped labs are untouched.
+- `sqli-elasticsearch-dsl-painless` (**expert**, `resource_tier: heavy`) — NoSQL/DSL injection:
+  the app uses `es.search({ index: "logs", ...body })`, JS spread lets a body-level `index` key
+  overwrite the intended scope, and `{"index":".credentials",...}` reveals the hidden secret_key.
+  Painless 8.x sandbox blocks cross-index/Runtime/java.io (documented deviation); the primitive is
+  index-scope widening, not script escape. ES-specific hardening: `read_only:true` kept, config
+  copied to `/tmp/es-config` at start, `/tmp` `exec` for JNA. app 154 MB + ES ~1.2 GB; both
+  posture-green; own-image Trivy 2-gate green; exploit ~0.1 s.
+
 ### batch/track-sqli-d-fortinet (this batch — 1 lab, first OOB/IPS-evasion)
 
 - `sqli-fortinet-ems-fctuid-rce` (**elite**) — abstracts **CVE-2023-48788 (FortiClient EMS)**. Header
@@ -135,10 +150,9 @@ http://oob:9000/x'` (superuser INTENTIONAL; table-source COPY has no `SELECT`, b
 
 ## Scheduled (future batches, Linux-feasible)
 
-**Implemented: 22/25.** The remaining 3 catalog entries are the heavy-tier
-labs (real MSSQL / Oracle / Elasticsearch — each needs a `resource_tier: heavy`
-lane + a new `.github/workflows/heavy-nightly.yml` decoupled from the main CI
-matrix) (Windows-container MSSQL/Fortinet/MoVEit and
+**Implemented: 23/25.** The heavy-tier lane (`resource_tier: heavy` field +
+`.github/workflows/heavy-nightly.yml`) is now live; Elasticsearch is the first
+heavy lab. Remaining 2 catalog entries are the heavy-tier MSSQL / Oracle labs (Windows-container MSSQL/Fortinet/MoVEit and
 heavy-tier Oracle/Elasticsearch). `sqli-postgres-copy-program-rce-chain` shipped as
 a `risk: low` egress-dropped RCE lab (COPY FROM PROGRAM needs no added caps). Pending the
 operator's charter decision (abstract onto a Linux stack, grant a heavy
@@ -152,7 +166,6 @@ re-platform decision** (abstract the vuln class onto a Linux-runnable stack):
 
 - `sqli-mssql-stacked-xp-cmdshell` — specifies **Windows Nano Server** (Windows container; cannot run on a Linux host).
 - `sqli-oob-dns-oracle-utlhttp` — **Oracle 21c XE** (~2–4 GB image, 60–120 s start; blows size/time gates).
-- `sqli-elasticsearch-dsl-painless` — **Elasticsearch 8.15** (requires >512 MB RAM; won't start under the mem cap).
 
 Proposed resolution: re-platform the MSSQL/Oracle/Elasticsearch labs onto Linux-runnable
 equivalents that teach the same primitive (stacked queries / OOB exfil / DSL injection),
