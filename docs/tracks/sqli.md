@@ -79,6 +79,18 @@ Node-alpine multi-stage with the bundled npm stripped from the runtime; Ruby-sli
 with `pg` compiled from source and the stale default `resolv` gemspec dropped) are
 documented in each lab's `SOLUTION.md` and the `CHANGELOG`.
 
+### batch/track-sqli-d-copy-program (this batch — 1 lab, first RCE lab)
+
+- `sqli-postgres-copy-program-rce-chain` (**elite**) — the first **SQLi-to-RCE** lab. FastAPI + asyncpg
+  metrics service connected to PostgreSQL 16 **as a superuser**; a stacked-query sink (`.execute`, simple
+  protocol) runs `CREATE TABLE loot; COPY loot FROM PROGRAM 'cat /labflag/flag.txt'` for command execution
+  inside the Postgres container, and a visible sink (`.fetch`, UNION) reads the output back. The flag is
+  planted on the Postgres filesystem (superuser `COPY TO`, derived app-side; the secret never reaches
+  Postgres), so only RCE recovers it. **Stays `risk: low`**: `COPY PROGRAM` needs no added caps, so
+  `cap_drop: ALL` + read-only rootfs are kept, and the Postgres container is put on an `internal: true`
+  **no-egress** network (no default route — verified). No new CI infra needed. app+db posture green, both
+  Trivy gates green (fastapi 0.141 / starlette 1.6), 157 MB, exploit <1 s.
+
 ### batch/track-sqli-d-layerslider (this batch — 1 lab, first PHP/WAF lab)
 
 - `sqli-layerslider-unauth-time-blind` (**elite**) — unauthenticated time-based blind SQLi through a
@@ -102,10 +114,10 @@ documented in each lab's `SOLUTION.md` and the `CHANGELOG`.
 
 ## Scheduled (future batches, Linux-feasible)
 
-**All straightforwardly-Linux-feasible SQLi labs are implemented (19/25).** The
-remaining 6 catalog entries are the infeasible-as-specified labs in the next
-section (one of which, `sqli-postgres-copy-program-rce-chain`, is Linux-feasible
-but needs the elevated-risk/egress-drop treatment), pending the
+**Implemented: 20/25.** The remaining 5 catalog entries are the infeasible-as-
+specified labs in the next section (Windows-container MSSQL/Fortinet/MoVEit and
+heavy-tier Oracle/Elasticsearch). `sqli-postgres-copy-program-rce-chain` shipped as
+a `risk: low` egress-dropped RCE lab (COPY FROM PROGRAM needs no added caps). Pending the
 operator's charter decision (abstract onto a Linux stack, grant a heavy
 resource-tier, or drop).
 
@@ -120,7 +132,6 @@ re-platform decision** (abstract the vuln class onto a Linux-runnable stack):
 - `sqli-moveit-header-auth-bypass-chain` — ASP.NET + MSSQL Server (heavy; >512m); §13 CVE-homage.
 - `sqli-oob-dns-oracle-utlhttp` — **Oracle 21c XE** (~2–4 GB image, 60–120 s start; blows size/time gates).
 - `sqli-elasticsearch-dsl-painless` — **Elasticsearch 8.15** (requires >512 MB RAM; won't start under the mem cap).
-- `sqli-postgres-copy-program-rce-chain` — Postgres `COPY … PROGRAM` → RCE; needs the §13 offline/egress-drop + elevated-risk treatment (schedule as a `risk: elevated` lab).
 
 Proposed resolution: re-platform the MSSQL/Oracle/Elasticsearch labs onto Linux-runnable
 equivalents that teach the same primitive (stacked queries / OOB exfil / DSL injection),

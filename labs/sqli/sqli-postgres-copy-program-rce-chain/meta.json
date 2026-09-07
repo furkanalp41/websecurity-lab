@@ -1,0 +1,47 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "sqli-postgres-copy-program-rce-chain",
+  "title": "Postgres SQLi to COPY FROM PROGRAM Command Execution",
+  "track": "sqli",
+  "difficulty": "elite",
+  "estimated_minutes": 60,
+  "max_lifetime_minutes": 90,
+  "learning_objectives": [
+    "Recognise a database superuser account in a containerised stack as a critical mis-configuration",
+    "Use stacked queries through a simple-query-protocol sink (asyncpg .execute) that a prepared-statement sink (.fetch) would reject",
+    "Abuse Postgres COPY ... FROM PROGRAM (superuser only) to execute shell commands inside the database container",
+    "Read command output back through a temp table and a UNION on the visible query endpoint",
+    "Understand why the RCE stays risk:low: it needs no added Linux capabilities and is contained by cap_drop:ALL + read-only rootfs + a no-egress network"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-89", "CWE-78"],
+  "prerequisites": ["sqli-union-product-search"],
+  "flag_hint": "SQLi -> stacked CREATE TABLE + COPY loot FROM PROGRAM 'cat /labflag/flag.txt' (RCE inside the Postgres container) -> UNION-read the loot table -> POST /solve {\"flag\":\"FLAG{...}\"}. The flag is planted on the Postgres container filesystem (not in any table), so only command execution recovers it.",
+  "tech_stack": [
+    "Python 3.12",
+    "FastAPI 0.141",
+    "asyncpg 0.30 (unsafe raw text SQL)",
+    "PostgreSQL 16.15 (running as superuser)",
+    "Docker Compose"
+  ],
+  "tags": [
+    "sqli",
+    "rce",
+    "copy-from-program",
+    "stacked-queries",
+    "postgres",
+    "superuser",
+    "command-execution",
+    "cwe-89",
+    "cwe-78"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": {
+    "container_port": 8080,
+    "protocol": "http",
+    "http_path": "/metrics?category=web"
+  },
+  "inspired_by": "Adrien Peter's Postgres COPY FROM PROGRAM RCE research and subsequent HackerOne reports (e.g. GitLab #827052); abstracted, no vendor code reproduced"
+}

@@ -1,0 +1,124 @@
+# SPDX-License-Identifier: MIT
+name: websec-lab-sqli-postgres-copy-program-rce-chain
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: websec-lab/sqli-postgres-copy-program-rce-chain:dev
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      LAB_USER_SECRET: ${LAB_USER_SECRET:?LAB_USER_SECRET is required}
+      FLAG_PATH: /var/lib/lab/flag.txt
+      DB_HOST: db
+      DB_PORT: '5432'
+      DB_NAME: metrics
+      DB_USER: metrics
+      DB_PASSWORD: metrics-superuser-pw
+      PG_FLAG_PATH: /labflag/flag.txt
+    # labctl rewrites this to 127.0.0.1:<allocated>:8080 at launch; :0 = ephemeral for local/CI.
+    ports:
+      - '127.0.0.1:${LAB_HOST_PORT:-0}:8080'
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+      - /var/lib/lab:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
+    pids_limit: 200
+    ulimits:
+      nofile:
+        soft: 1024
+        hard: 2048
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen(''http://127.0.0.1:8080/health'').read()==b''ok'' else 1)" || exit 1'
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+    networks:
+      - edge
+      - backend
+
+  db:
+    image: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+    # Run postgres as the non-root postgres uid (70). This lab DELIBERATELY exposes
+    # COPY ... FROM PROGRAM RCE, but it stays risk:low: COPY PROGRAM runs a command
+    # as this unprivileged uid and needs NO added Linux capabilities, so cap_drop:ALL
+    # is kept intact. Containment is by the standard sandbox PLUS the `backend`
+    # network being `internal: true` (no egress) — a shell obtained via the RCE
+    # cannot phone home or pivot.
+    user: '70:70'
+    command:
+      - postgres
+      - -c
+      - fsync=off
+      - -c
+      - full_page_writes=off
+      - -c
+      - shared_buffers=64MB
+    environment:
+      POSTGRES_USER: metrics
+      POSTGRES_PASSWORD: metrics-superuser-pw
+      POSTGRES_DB: metrics
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+    read_only: true
+    tmpfs:
+      - /var/lib/postgresql/data:uid=70,gid=70,mode=0700,size=192m
+      - /run/postgresql:uid=70,gid=70,size=8m
+      - /tmp:size=16m
+      # The per-container flag is planted here (by the app, via a superuser COPY TO)
+      # so it is recoverable only through command execution, never a SQL SELECT.
+      - /labflag:uid=70,gid=70,mode=0700,size=4m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
+    pids_limit: 200
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U metrics -d metrics -h 127.0.0.1 || exit 1']
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+    networks:
+      - backend
+
+networks:
+  # The learner reaches the app via its published 127.0.0.1 port; port publishing
+  # does not work on an `internal` network, so the app sits on this normal bridge.
+  edge:
+    name: websec-lab_sqli-copy-program_edge
+    driver: bridge
+    internal: false
+  # Egress-drop network (§13). `internal: true` gives it no route off the host, so
+  # the Postgres container — the RCE target — has NO outbound connectivity. Only
+  # the app is dual-homed (edge + backend); the DB lives here alone and publishes
+  # no ports.
+  backend:
+    name: websec-lab_sqli-copy-program_backend
+    driver: bridge
+    internal: true

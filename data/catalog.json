@@ -531,8 +531,8 @@
         "title": "Elite Chain: Postgres SQLi to COPY FROM PROGRAM RCE",
         "difficulty": "elite",
         "description": "A metrics microservice concatenates a filter param into raw SQL against PostgreSQL 16, running as a database superuser (a very common mis-configuration in Docker'd stacks). Superusers can invoke COPY table FROM PROGRAM 'shell command', which executes shell inside the Postgres container. Students perform SQLi -> stacked query -> CREATE TABLE tmp -> COPY tmp FROM PROGRAM 'id; cat /flag.txt' -> SELECT to read output back.",
-        "objective": "Achieve command execution inside the Postgres container via COPY FROM PROGRAM, read /flag.txt (mounted into the Postgres container), and POST it verbatim to /solve.",
-        "flag_hint": "/solve compares the submitted string against /flag.txt; on match it returns HTTP 200 with the flag echoed back plus a signed 'completion' JWT for the challenge platform.",
+        "objective": "Chain SQL injection through a superuser-connected metrics service into COPY ... FROM PROGRAM command execution inside the PostgreSQL container, read the per-container flag planted on the database filesystem (recoverable only via command execution, not a SQL SELECT), and POST it to /solve.",
+        "flag_hint": "SQLi -> stacked CREATE TABLE + COPY loot FROM PROGRAM 'cat /labflag/flag.txt' (RCE in the Postgres container) -> UNION-read loot -> POST /solve {\"flag\":\"FLAG{...}\"}. The lab is risk:low: COPY PROGRAM needs no added caps and is contained by cap_drop:ALL + read-only rootfs + a no-egress network.",
         "skills_taught": [
           "Postgres COPY FROM PROGRAM privilege abuse",
           "Recognising superuser DB accounts in containerised stacks",
@@ -541,9 +541,9 @@
         ],
         "tech_stack": [
           "Python 3.12",
-          "FastAPI 0.115",
-          "asyncpg 0.29 (unsafe raw text SQL)",
-          "PostgreSQL 16.4 (running as superuser)",
+          "FastAPI 0.141",
+          "asyncpg 0.30 (unsafe raw text SQL)",
+          "PostgreSQL 16.15 (running as superuser)",
           "Docker Compose"
         ],
         "inspired_by": "The 2019 Adrien Peter DEF CON talk on Postgres COPY-FROM-PROGRAM and subsequent HackerOne reports (e.g. GitLab #827052)"
