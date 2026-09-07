@@ -37,6 +37,7 @@ interface CatalogLab {
   title: string;
   difficulty: string;
   tech_stack?: string[];
+  resource_tier?: string;
 }
 interface CatalogGroup {
   category: string;
@@ -51,6 +52,7 @@ interface Meta {
   owasp_categories: string[];
   cwe_ids: string[];
   tech_stack: string[];
+  resource_tier?: string;
   [k: string]: unknown;
 }
 
@@ -171,6 +173,19 @@ for (const file of metaFiles) {
     if (catTs !== metaTs) {
       console.error(
         `ERROR ${rel}: tech_stack drift vs data/catalog.json — meta ${metaTs} != catalog ${catTs} (reconcile the catalog entry for this implemented lab)`,
+      );
+      errors += 1;
+    }
+    // resource_tier drift-lint: same principle as tech_stack. Absent field ==
+    // "standard" on both sides, so either side declaring "heavy" must be
+    // mirrored on the other. Prevents a lab declaring `resource_tier: heavy`
+    // in meta while the catalog still shows it as a normal-tier lab (which
+    // would mis-route the hub badge + the operator's expectations).
+    const catRT = (catLab.resource_tier ?? 'standard') as string;
+    const metaRT = (meta.resource_tier as string | undefined) ?? 'standard';
+    if (catRT !== metaRT) {
+      console.error(
+        `ERROR ${rel}: resource_tier drift vs data/catalog.json — meta "${metaRT}" != catalog "${catRT}" (reconcile the catalog entry for this implemented lab)`,
       );
       errors += 1;
     }

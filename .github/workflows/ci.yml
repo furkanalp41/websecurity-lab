@@ -85,19 +85,52 @@ jobs:
           path: hub/out
 
   discover-labs:
+    # Partition every discovered lab into exactly one of {standard, heavy} by its
+    # meta.json resource_tier field (absent -> "standard"). The PR-blocking
+    # docker-lab-matrix consumes only `standard`; `heavy` is picked up by the
+    # separate heavy-nightly.yml workflow. A completeness assertion below fails
+    # the run if any lab falls into neither partition (typo'd resource_tier, jq
+    # hiccup, etc.) so a lab is NEVER silently tested nowhere.
     runs-on: ubuntu-latest
     needs: bootstrap
     outputs:
-      labs: ${{ steps.find.outputs.labs }}
-      count: ${{ steps.find.outputs.count }}
+      labs: ${{ steps.partition.outputs.standard }}
+      count: ${{ steps.partition.outputs.standard_count }}
+      heavy_labs: ${{ steps.partition.outputs.heavy }}
+      heavy_count: ${{ steps.partition.outputs.heavy_count }}
+      total: ${{ steps.partition.outputs.total }}
     steps:
       - uses: actions/checkout@v4
-      - id: find
+      - id: partition
         run: |
-          labs=$(find labs -name meta.json | sed 's|/meta.json||' | sort \
-            | jq -R -s -c 'split("\n") | map(select(length>0))')
-          echo "labs=$labs" >> "$GITHUB_OUTPUT"
-          echo "count=$(echo "$labs" | jq 'length')" >> "$GITHUB_OUTPUT"
+          set -eu
+          total=0; standard='[]'; heavy='[]'
+          for m in $(find labs -name meta.json | sort); do
+            dir="${m%/meta.json}"
+            total=$((total + 1))
+            tier=$(jq -r '.resource_tier // "standard"' "$m")
+            case "$tier" in
+              standard) standard=$(echo "$standard" | jq --arg d "$dir" '. + [$d]') ;;
+              heavy)    heavy=$(echo "$heavy" | jq --arg d "$dir" '. + [$d]') ;;
+              *) echo "::error file=$m::resource_tier must be "standard" or "heavy" (got $tier)"; exit 1 ;;
+            esac
+          done
+          s_count=$(echo "$standard" | jq 'length')
+          h_count=$(echo "$heavy" | jq 'length')
+          # C1: partition completeness — every lab must land in exactly ONE bucket.
+          # This closes the dangerous failure mode where a lab silently drops out
+          # of both matrices (typo'd resource_tier tolerated by the schema's
+          # additionalProperties handling, jq parse hiccup, etc.).
+          if [ "$((s_count + h_count))" -ne "$total" ]; then
+            echo "::error::partition incomplete: $s_count standard + $h_count heavy != $total total (some labs silently un-tested)"; exit 1
+          fi
+          echo "discovered $total labs: $s_count standard + $h_count heavy (partition complete)"
+          # Compact JSON arrays into single-line GITHUB_OUTPUT values.
+          echo "standard=$(echo "$standard" | jq -c .)" >> "$GITHUB_OUTPUT"
+          echo "standard_count=$s_count" >> "$GITHUB_OUTPUT"
+          echo "heavy=$(echo "$heavy" | jq -c .)" >> "$GITHUB_OUTPUT"
+          echo "heavy_count=$h_count" >> "$GITHUB_OUTPUT"
+          echo "total=$total" >> "$GITHUB_OUTPUT"
 
   dockerfile-lint:
     runs-on: ubuntu-latest

@@ -1,0 +1,121 @@
+# SPDX-License-Identifier: MIT
+name: websec-lab-sqli-elasticsearch-dsl-painless
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: websec-lab/sqli-elasticsearch-dsl-painless:dev
+    depends_on:
+      es:
+        condition: service_healthy
+    environment:
+      LAB_USER_SECRET: ${LAB_USER_SECRET:?LAB_USER_SECRET is required}
+      FLAG_PATH: /var/lib/lab/flag.txt
+      ES_URL: http://es:9200
+    ports:
+      - '127.0.0.1:${LAB_HOST_PORT:-0}:8080'
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+      - /var/lib/lab:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
+    pids_limit: 200
+    ulimits:
+      nofile:
+        soft: 1024
+        hard: 2048
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'wget -q -O - http://127.0.0.1:8080/health 2>/dev/null | grep -q ok || exit 1'
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+    networks:
+      - edge
+      - backend
+
+  es:
+    # Elasticsearch 8.15.5 official image. This is a HEAVY-tier engine (~1.2 GB
+    # image, ~1 GB heap + overhead), scoped by `resource_tier: heavy` in
+    # meta.json to the nightly matrix.
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.5@sha256:8870d5b7b86235fa790c9112464f5fd3b693f89d73e757a630f8b5cda350f95b
+    user: '1000:0'
+    # ES needs a writable /usr/share/elasticsearch/config for the keystore. We
+    # keep the rootfs read-only (posture requirement) and instead copy the
+    # shipped config to a writable tmpfs and point ES_PATH_CONF at it. /tmp is
+    # mounted `exec` because JNA loads native libraries via mmap+exec.
+    entrypoint:
+      - /bin/bash
+      - -c
+      - 'cp -r /usr/share/elasticsearch/config /tmp/es-config && chown -R 1000:0 /tmp/es-config && exec /usr/local/bin/docker-entrypoint.sh eswrapper'
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: 'false'
+      xpack.security.http.ssl.enabled: 'false'
+      xpack.security.transport.ssl.enabled: 'false'
+      ES_JAVA_OPTS: '-Xms512m -Xmx512m'
+      ES_PATH_CONF: /tmp/es-config
+      cluster.name: acme-logs
+      # Tiny cluster tuning to keep RSS inside the heavy-tier mem_limit.
+      bootstrap.memory_lock: 'false'
+    read_only: true
+    tmpfs:
+      - /tmp:exec,size=256m,mode=1777
+      - /usr/share/elasticsearch/data:uid=1000,gid=0,mode=0770,size=512m
+      - /usr/share/elasticsearch/logs:uid=1000,gid=0,mode=0770,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    # Heavy-tier budget (2g) — flexes the NUMERIC limit only; every posture
+    # rule above matches the standard tier exactly.
+    mem_limit: 2g
+    memswap_limit: 2g
+    cpus: 2.0
+    pids_limit: 500
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -sf http://127.0.0.1:9200/_cluster/health >/dev/null || exit 1']
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+    networks:
+      - backend
+
+networks:
+  edge:
+    name: websec-lab_sqli-es-dsl_edge
+    driver: bridge
+    internal: false
+  # Defense-in-depth: ES sits alone on an egress-drop network. Even though this
+  # is NOT an RCE lab (Painless sandbox rejects file/network primitives — see
+  # SOLUTION), keeping the DB service off the internet is the project's
+  # standing pattern (copy-program, moveit, fortinet).
+  backend:
+    name: websec-lab_sqli-es-dsl_backend
+    driver: bridge
+    internal: true

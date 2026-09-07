@@ -1,0 +1,168 @@
+# SPDX-License-Identifier: MIT
+#
+# heavy-nightly.yml — nightly gauntlet for `resource_tier: heavy` labs.
+#
+# NEVER runs on push/PR. Heavy labs (engine-specific: Elasticsearch, Oracle,
+# MSSQL, ...) exceed the standard PR-blocking gates (512m RAM, 300 MB image,
+# 60 s exploit budget) by design, and gating a PR on a 2-4 GB image + a JIT
+# warm-up would rot the PR merge queue. The standard docker-lab-matrix
+# provably SKIPS these (see discover-labs partition in ci.yml).
+#
+# On failure, opens a single rolling GitHub issue (deduped by title) so a red
+# nightly is loud instead of dying quietly in the Actions tab (see C3).
+name: heavy-nightly
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # 03:00 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write # only for the dedupe-issue-on-failure step
+
+# Prevent a manual dispatch from stampeding an in-flight cron run; queue instead.
+concurrency:
+  group: heavy-nightly
+  cancel-in-progress: false
+
+env:
+  LAB_USER_SECRET: '0000000000000000000000000000000000000000000000000000000000000000'
+  LAB_HOST_PORT: '51000'
+  ROLLING_ISSUE_TITLE: 'heavy-nightly: red run'
+
+jobs:
+  discover-heavy-labs:
+    runs-on: ubuntu-latest
+    outputs:
+      labs: ${{ steps.partition.outputs.heavy }}
+      count: ${{ steps.partition.outputs.heavy_count }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: partition
+        # Same partition logic as ci.yml's discover-labs, including the C1
+        # completeness assertion (guarantees no lab is silently un-tested).
+        run: |
+          set -eu
+          total=0; standard='[]'; heavy='[]'
+          for m in $(find labs -name meta.json | sort); do
+            dir="${m%/meta.json}"
+            total=$((total + 1))
+            tier=$(jq -r '.resource_tier // "standard"' "$m")
+            case "$tier" in
+              standard) standard=$(echo "$standard" | jq --arg d "$dir" '. + [$d]') ;;
+              heavy)    heavy=$(echo "$heavy" | jq --arg d "$dir" '. + [$d]') ;;
+              *) echo "::error file=$m::resource_tier must be \"standard\" or \"heavy\" (got $tier)"; exit 1 ;;
+            esac
+          done
+          s_count=$(echo "$standard" | jq 'length')
+          h_count=$(echo "$heavy" | jq 'length')
+          if [ "$((s_count + h_count))" -ne "$total" ]; then
+            echo "::error::partition incomplete: $s_count + $h_count != $total"; exit 1
+          fi
+          echo "discovered $h_count heavy lab(s) of $total total"
+          echo "heavy=$(echo "$heavy" | jq -c .)" >> "$GITHUB_OUTPUT"
+          echo "heavy_count=$h_count" >> "$GITHUB_OUTPUT"
+
+  docker-heavy-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45 # standard is 20; heavy engines need warm-up + slower exploits
+    needs: discover-heavy-labs
+    if: ${{ needs.discover-heavy-labs.outputs.count != '0' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        lab: ${{ fromJson(needs.discover-heavy-labs.outputs.labs) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compose up (hardened, fixed loopback port; heavy-tier start_period allowed)
+        run: docker compose -f "${{ matrix.lab }}/docker-compose.yml" up -d --wait --wait-timeout 300
+      - name: Container security posture gate (IDENTICAL to standard tier)
+        # Every posture rule from check-posture.sh applies unchanged: non-root,
+        # ReadonlyRootfs, cap_drop:ALL, no-new-privileges, pids/mem declared,
+        # loopback-only publishing. The heavy tier flexes the NUMERIC budget of
+        # mem_limit (e.g. 2g vs 512m), never the posture rules themselves.
+        run: |
+          cids=$(docker compose -f "${{ matrix.lab }}/docker-compose.yml" ps -q)
+          sh scripts/check-posture.sh $cids
+      - name: Resolve image + enforce size cap (<4096MB for heavy tier)
+        id: img
+        run: |
+          img=$(docker compose -f "${{ matrix.lab }}/docker-compose.yml" config --images | grep -E '^websec-lab/' | head -1)
+          echo "image=$img" >> "$GITHUB_OUTPUT"
+          bytes=$(docker image inspect "$img" --format '{{.Size}}')
+          mb=$(( bytes / 1024 / 1024 ))
+          echo "image $img is ${mb}MB (heavy cap 4096)"
+          test "$mb" -le 4096
+      - name: Run intended exploit (<180s heavy budget) and verify flag
+        run: |
+          python3 "${{ matrix.lab }}/tests/exploit.py" --target "http://127.0.0.1:${LAB_HOST_PORT}" --timeout 180 | tee /tmp/exploit.out
+          tail -n1 /tmp/exploit.out | grep -Eq '^FLAG\{[0-9a-f]{64}\}$'
+      - name: Run checker
+        run: sh "${{ matrix.lab }}/tests/checker.sh" "http://127.0.0.1:${LAB_HOST_PORT}"
+      - name: No materialized flag literal baked into the image (IDENTICAL to standard)
+        run: |
+          cid=$(docker create "${{ steps.img.outputs.image }}")
+          if docker export "$cid" | grep -aEq 'FLAG\{[0-9a-f]{64}\}'; then
+            docker rm "$cid" >/dev/null
+            echo "::error::a materialized flag literal was found in the image"; exit 1
+          fi
+          docker rm "$cid" >/dev/null
+          echo "no baked flag literal in image"
+      - name: Trivy image scan — SAME strict 2-gate on the built app image
+        # Identical policy to standard tier: library HIGH+CRITICAL blocks; os
+        # CRITICAL blocks. Pulled engine images (elasticsearch, oracle, mssql)
+        # are NOT scanned, matching how the standard matrix already handles
+        # pulled DB images — an engine CVE we do not own would make the nightly
+        # perpetually red, defeating the alerting.
+        run: |
+          IMG="${{ steps.img.outputs.image }}"
+          TRIVY() { docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:0.74.0 image --ignore-unfixed --no-progress --scanners vuln "$@"; }
+          echo "::group::Trivy advisory — all fixed HIGH+CRITICAL in $IMG"
+          TRIVY --severity HIGH,CRITICAL --exit-code 0 "$IMG" || true
+          echo "::endgroup::"
+          TRIVY --severity HIGH,CRITICAL --pkg-types library --exit-code 1 "$IMG"
+          TRIVY --severity CRITICAL --pkg-types os --exit-code 1 "$IMG"
+      - name: Compose down
+        if: always()
+        run: docker compose -f "${{ matrix.lab }}/docker-compose.yml" down --volumes --remove-orphans
+
+  # C3: on any failure across the matrix, open OR update ONE rolling issue so a
+  # red nightly is visible without spamming an issue per night.
+  open-or-update-rolling-issue:
+    needs: [discover-heavy-labs, docker-heavy-matrix]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const title = process.env.ROLLING_ISSUE_TITLE || 'heavy-nightly: red run';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = [
+              `heavy-nightly failed on ${new Date().toISOString()}.`,
+              ``,
+              `Run: ${runUrl}`,
+              `Commit: ${context.sha}`,
+              ``,
+              `This is the ROLLING failure-tracking issue for heavy-nightly. Close it once the nightly is green again.`,
+            ].join('\n');
+
+            // Find existing open rolling issue authored by the bot with the exact title.
+            const q = `repo:${context.repo.owner}/${context.repo.repo}+is:issue+is:open+in:title+"${title}"`;
+            const search = await github.rest.search.issuesAndPullRequests({ q });
+            const existing = search.data.items.find(i => i.title === title);
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner, repo: context.repo.repo,
+                issue_number: existing.number, body,
+              });
+              core.info(`Updated existing rolling issue #${existing.number}`);
+            } else {
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner, repo: context.repo.repo,
+                title, body, labels: ['heavy-nightly'],
+              });
+              core.info(`Opened new rolling issue #${created.data.number}`);
+            }

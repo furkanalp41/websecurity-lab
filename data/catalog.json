@@ -422,8 +422,8 @@
         "title": "Elasticsearch DSL Injection with Painless Script Field",
         "difficulty": "expert",
         "description": "A log-search UI forwards a user-supplied 'query' JSON into Elasticsearch's _search API, permitting a script_fields block. If a user can inject a Painless script, they can read arbitrary index documents and even runtime system properties (limited by Painless sandbox). Students learn 'SQLi-adjacent' NoSQL injection: same class of flaw, different DSL.",
-        "objective": "Read the '.credentials' index (normally hidden from your account by index filters) via script_fields, and extract the secret_key field of document id 'flag'. Submit that key to /solve.",
-        "flag_hint": "/solve returns flag from /flag.txt on correct secret_key. /debug shows the ES query that was executed.",
+        "objective": "Send a JSON body to POST /search that overrides the app-side index scope, reach the hidden .credentials index, extract secret_key for doc id 'flag', and POST /solve to receive the flag.",
+        "flag_hint": "POST /search {\"index\":\".credentials\",\"query\":{\"match_all\":{}}} — the app spreads your body over the ES client call, so a body-level index key overwrites the intended 'logs' scope. Read _source.secret_key from the .credentials/flag hit and POST /solve {\"secret_key\":\"<value>\"}. Heavy tier — runs nightly, not on every PR.",
         "skills_taught": [
           "Elasticsearch DSL injection",
           "Painless script capabilities and sandbox limits",
@@ -432,11 +432,12 @@
         ],
         "tech_stack": [
           "Node.js 20",
-          "Fastify 4.28",
-          "Elasticsearch 8.15 (single-node)",
-          "official @elastic/elasticsearch 8.15 client"
+          "Fastify 5.12",
+          "Elasticsearch 8.15.5",
+          "@elastic/elasticsearch 8.15.3 client"
         ],
-        "inspired_by": "The 2020 Snyk research on ES DSL injection and CVE-2015-1427 spiritually updated for 8.x"
+        "inspired_by": "The 2020 Snyk research on ES DSL injection and CVE-2015-1427 spiritually updated for 8.x",
+        "resource_tier": "heavy"
       },
       {
         "slug": "sqli-graphql-batch-prisma-raw",
