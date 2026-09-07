@@ -6,6 +6,32 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### track-sqli-d-moveit — header SQLi → session forgery → file exfil (1, first auth-bypass-by-write lab)
+
+- `sqli-moveit-header-auth-bypass-chain` (**elite**): abstracts **CVE-2023-34362 (MOVEit Transfer)**. An
+  `X-siLock-Comment` request header is concatenated into an audit-log `INSERT` run via psycopg2 `.execute()`
+  (stacked statements). The chain: stack a second `INSERT` that forges a valid `sysadmin` row in the
+  database-backed **session store** (auth bypass by WRITING state, not reading), reuse that cookie to
+  `GET /files/download?path=confidential/flag.bin`, then `POST /solve` with the file's SHA-256. The
+  confidential file is per-container (derived from `LAB_USER_SECRET`), so only a real download validates.
+- **Re-platformed to Linux (Flask + PostgreSQL)** from the catalog's ASP.NET/MSSQL-2022/nginx spec — MSSQL
+  needs ~2 GB RAM / ~1.5 GB image (blows the 512m/300MB gates). The taught primitive is identical (psycopg2
+  `.execute()` stacks statements like MSSQL `SqlCommand`); nginx omitted as a transport detail. `risk: low`,
+  no RCE.
+- Verified clean-room: fresh build, posture both containers (app uid 10001, db uid 70), image 143 MB, both
+  Trivy gates green (Flask 3.1 / gunicorn 23 / psycopg2 2.9 / werkzeug 3.1.8 — 0 vulns), no-baked-flag,
+  digest-pinned, exploit exit 0 in <1 s (download gated 403 before forgery → 200 after), checker solved.
+- **Least-privilege DB role (security-critical):** the app connects as a **non-superuser** Postgres role
+  (`moveitapp`, created by `db-init/01-init.sql` at init) with only INSERT on audit_log/sessions + SELECT on
+  sessions/users. This forecloses the unintended `COPY ... FROM/TO PROGRAM` RCE that a superuser app role
+  would expose through the same stacked-query sink; the intended plain-INSERT session forgery still works.
+  The DB is additionally placed on an `internal: true` no-egress network (defense in depth). (Addresses
+  AUDITOR BL-1: `POSTGRES_USER` is always a superuser, so the initial cut shipped a trivially-reachable
+  RCE with open egress.)
+- **Catalog reconcile (Hybrid)**: `tech_stack` → shipped Flask/Postgres; `objective`/`flag_hint` → the real
+  header-SQLi → session-forgery → SHA-256 chain. Adds OWASP A07 + CWE-565 (reliance on an unvalidated
+  session cookie). Track → **21/25**.
+
 ### track-sqli-d-copy-program — Postgres SQLi → COPY FROM PROGRAM RCE chain (1, first RCE lab)
 
 - `sqli-postgres-copy-program-rce-chain` (**elite**): the project's first **SQLi-to-RCE** lab. A FastAPI +

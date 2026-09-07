@@ -1,0 +1,35 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "sqli-moveit-header-auth-bypass-chain",
+  "title": "Header SQLi to Session Forgery and File Exfil",
+  "track": "sqli",
+  "difficulty": "elite",
+  "estimated_minutes": 60,
+  "max_lifetime_minutes": 90,
+  "learning_objectives": [
+    "Find SQL injection in an HTTP header (X-siLock-Comment) that is concatenated into an audit-log INSERT",
+    "Use a stacked INSERT to forge a valid session row for the built-in sysadmin user (auth bypass by writing state)",
+    "Chain the forged session into authenticated file exfiltration of a protected download",
+    "Reason about database-backed session stores as an injection target, not just a read surface"
+  ],
+  "owasp_categories": ["A03:2021-Injection", "A07:2021-Identification and Authentication Failures"],
+  "cwe_ids": ["CWE-89", "CWE-565"],
+  "prerequisites": ["sqli-second-order-registration"],
+  "flag_hint": "Forge an admin session via header SQLi, download /files/download?path=confidential/flag.bin with that session, then POST its SHA-256 to /solve. /solve returns FLAG{...} when the hash matches this container's per-instance flag.bin.",
+  "tech_stack": ["Python 3.12", "Flask 3.1", "gunicorn 23", "psycopg2 2.9", "PostgreSQL 16.15"],
+  "tags": [
+    "sqli",
+    "header-injection",
+    "session-forgery",
+    "auth-bypass",
+    "stacked-queries",
+    "postgres",
+    "cwe-89",
+    "cwe-565"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "CVE-2023-34362 Progress MOVEit Transfer SQLi (abstracted; no proprietary code reproduced; only the chain shape)"
+}

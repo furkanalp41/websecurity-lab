@@ -79,6 +79,15 @@ Node-alpine multi-stage with the bundled npm stripped from the runtime; Ruby-sli
 with `pg` compiled from source and the stale default `resolv` gemspec dropped) are
 documented in each lab's `SOLUTION.md` and the `CHANGELOG`.
 
+### batch/track-sqli-d-moveit (this batch — 1 lab, first auth-bypass-by-write)
+
+- `sqli-moveit-header-auth-bypass-chain` (**elite**) — abstracts **CVE-2023-34362 (MOVEit)**. Header SQLi
+  (`X-siLock-Comment`) → stacked `INSERT` forging a `sysadmin` row in the DB-backed session store (auth
+  bypass by writing state) → authenticated `GET /files/download` of a per-container `flag.bin` → SHA-256 →
+  `/solve`. Re-platformed ASP.NET/MSSQL → **Flask + PostgreSQL** (MSSQL blows the 512m/300MB gates; psycopg2
+  `.execute()` stacks like `SqlCommand`); nginx omitted. `risk: low`, no RCE. posture + both Trivy gates
+  green, 143 MB, exploit <1 s (403 before forgery → 200 after).
+
 ### batch/track-sqli-d-copy-program (this batch — 1 lab, first RCE lab)
 
 - `sqli-postgres-copy-program-rce-chain` (**elite**) — the first **SQLi-to-RCE** lab. FastAPI + asyncpg
@@ -114,7 +123,7 @@ documented in each lab's `SOLUTION.md` and the `CHANGELOG`.
 
 ## Scheduled (future batches, Linux-feasible)
 
-**Implemented: 20/25.** The remaining 5 catalog entries are the infeasible-as-
+**Implemented: 21/25.** The remaining 4 catalog entries are the infeasible-as-
 specified labs in the next section (Windows-container MSSQL/Fortinet/MoVEit and
 heavy-tier Oracle/Elasticsearch). `sqli-postgres-copy-program-rce-chain` shipped as
 a `risk: low` egress-dropped RCE lab (COPY FROM PROGRAM needs no added caps). Pending the
@@ -129,7 +138,6 @@ re-platform decision** (abstract the vuln class onto a Linux-runnable stack):
 
 - `sqli-mssql-stacked-xp-cmdshell` — specifies **Windows Nano Server** (Windows container; cannot run on a Linux host).
 - `sqli-fortinet-ems-fctuid-rce` — **Windows Server Core** + MSSQL (Windows container); also a §13 CVE-homage.
-- `sqli-moveit-header-auth-bypass-chain` — ASP.NET + MSSQL Server (heavy; >512m); §13 CVE-homage.
 - `sqli-oob-dns-oracle-utlhttp` — **Oracle 21c XE** (~2–4 GB image, 60–120 s start; blows size/time gates).
 - `sqli-elasticsearch-dsl-painless` — **Elasticsearch 8.15** (requires >512 MB RAM; won't start under the mem cap).
 
