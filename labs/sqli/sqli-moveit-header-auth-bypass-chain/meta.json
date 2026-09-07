@@ -26,7 +26,7 @@
     "stacked-queries",
     "postgres",
     "cwe-89",
-    "cwe-384"
+    "cwe-565"
   ],
   "risk": "low",
   "authors": ["furkanalp41"],

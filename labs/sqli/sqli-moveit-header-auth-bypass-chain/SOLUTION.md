@@ -16,7 +16,7 @@ create the session `/login` won't give you.
 ## The class of bug
 
 SQL injection (CWE-89) into a **database-backed session store**, yielding
-authentication bypass (CWE-384). `src/app.py`:
+authentication bypass (CWE-565). `src/app.py`:
 
 ```python
 comment = request.headers.get("X-siLock-Comment", "")
