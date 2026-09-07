@@ -1,0 +1,29 @@
+# Review: batch/track-sqli-d-heavy-infra-plus-es (PR #12) — PASS_WITH_FINDINGS
+
+**Auditor:** denetle · **Head:** 2146b80 · **Base:** main (clean ancestor)
+**Contents:** heavy-tier plumbing (schema + CI split + heavy-nightly.yml + drift-lint) + first heavy lab `sqli-elasticsearch-dsl-painless` (resource_tier: heavy, expert).
+
+## Verdict: PASS_WITH_FINDINGS — infra meets all preflight conditions (C1/C3/C5 verified), ES lab works and is well-contained. Two MINOR non-blocking documentation-accuracy findings (BL-1, BL-2). Cleared to merge; fix the docs at merge or fast-follow.
+
+## INFRA — my preflight conditions, VERIFIED
+- **C1 (partition completeness):** present in BOTH ci.yml discover-labs AND heavy-nightly.yml discover-heavy-labs — `s_count + h_count != total → ::error exit 1`, typo'd tier hits the `*)` case → exit 1, and `set -eu` makes malformed JSON fail loud (never silently drops a lab). Verified live against the real 23 labs: 22 standard + 1 heavy = 23 (complete); a typo `resource_tier:"heavey"` is correctly rejected.
+- **C5 (routing proven):** ran the exact partition logic — the ES lab is the ONLY heavy lab, is ABSENT from the standard partition (docker-lab-matrix consumes `outputs.labs` = standard, so PR CI provably SKIPS it), and PRESENT in heavy (heavy-nightly picks it up).
+- **C3 (rolling issue):** open-or-update-rolling-issue job, `if: failure()`, `issues:write` only, searches for the open titled issue → createComment if found / issues.create (auto-creates label) otherwise. Single job per run → no intra-run double-create. Dedupe works.
+- **Schema:** `resource_tier` added as OPTIONAL enum['standard','heavy'] (absent=standard); the +144 diff is ~90% prettier reformatting — I read it all: no constraint loosened, `required` unchanged, `risk→elevated_caps` conditional preserved, additionalProperties:false intact.
+- **Q-answers honored:** flat top-level field (Q1), name `resource_tier` (Q2), cron 03:00 + workflow_dispatch + concurrency guard cancel-in-progress:false (Q3), same flag contract (Q4), size cap 4096 on OWN image only (Q5), trivy strict 2-gate on OWN app image only — pulled engines NOT scanned (Q6). Posture rules IDENTICAL across tiers; only mem/size/timeout flex.
+- **drift-lint:** build-catalog mirrors tech_stack for resource_tier (absent=standard both sides; mismatch errors).
+- **No regression:** standard docker-lab-matrix consumer unchanged (`outputs.labs` shape preserved); the 22 shipped labs need no edits.
+
+## ES LAB — full gauntlet GREEN
+Posture PASS both (app=app/10001, es=1000:0 — non-root, read_only, cap_drop:ALL, no-new-privileges, pids/mem, app loopback-only, es NO host port). Intended exploit exit 0 (object-spread `index` override → read `.credentials/flag` secret_key → /solve; flag == independent HMAC), checker solved. Flag hygiene: raw LAB_USER_SECRET absent from the ES container, no FLAG in any ES index (flag lives only in the app container; secret_key is the per-container exfil target), no baked flag (strict 0). ES egress-dropped (backend internal:true, no default route) — defense-in-depth even though not RCE. app image 154 MB; ES ~1.2 GB (heavy cap 4096). trivy own-image library=0/os=0. gitleaks clean, drift-lint (23), map, typecheck (5), format, dockerfile-pin (23), meta schema-valid with resource_tier. SOLUTION 9 sections (incl. honest Painless-sandbox + ES-hardening deviations); hints 1-3 correct and consistent with the shipped primitive. /solve constant-time (timingSafeEqual + length check).
+Hardening deviations VERIFIED working + acceptable: config copied to writable /tmp/es-config (rootfs stays read_only); ES `/tmp` mounted `exec` for JNA native libs — acceptable because there is NO RCE primitive (Painless 8.x sandbox blocks exec/file/network, confirmed in SOLUTION) and the container is non-root + cap_drop:ALL + no-new-privileges + egress-dropped, so the exec tmpfs is not attacker-reachable.
+
+## Findings (MINOR · documentation accuracy · non-blocking)
+- **BL-1 — `tests/exploit.py` docstring (lines ~10-50):** contradictory/unedited exploration notes, including a FALSE claim ("a body-level `index` is IGNORED by the transport", ~line 27-30) that directly contradicts the actual bug — I disproved it live (object-spread override returns the `.credentials` hit). The CODE is correct and SOLUTION/hints are correct, but a reference exploit students read should not carry a false primitive claim. Trim to state the object-spread override plainly (as SOLUTION already does).
+- **BL-2 — `meta.json` learning_objective #3:** names "multi-index request or an _index term filter" as the scope-widening mechanism, but that is NOT the shipped primitive. Verified live: `{"query":{"terms":{"_index":[".credentials"]}}}` with URL scope=logs returns 0 hits (dead end — URL scope limits the shards); only the object-spread `index` override works (1 hit). Align objective #3 to the actual primitive (object-spread body override), or generalize it, so an expert learner isn't sent down a non-functional path. (SOLUTION objectives-vs-body already frame it right; just the meta objective drifted.)
+
+## Trivial observations (no action required)
+- ci.yml discover-labs typo `::error` message has unescaped inner double-quotes (shell no-ops; output is still correct). heavy-nightly.yml has the escaped/correct form — worth matching for consistency.
+- C3 dedupe uses the Search API, which has index lag; on consecutive-night failures it could rarely open a 2nd rolling issue. `issues.listForRepo({labels:'heavy-nightly', state:'open'})` would be lag-free. Minor.
+
+Excellent infra work — C1/C3/C5 all implemented as asked and I verified them end-to-end. The ES lab's object-spread primitive is a genuinely nice, real bug; just make the exploit docstring + objective #3 tell the same (true) story the SOLUTION does.
