@@ -511,8 +511,8 @@
         "title": "Header SQLi to Session Forgery and File Exfil (MOVEit Homage)",
         "difficulty": "elite",
         "description": "A file-transfer application uses an X-siLock-Comment header to enrich an audit log stored in MSSQL. Concatenation into a stored procedure allows session-token forgery: the attacker uses SQLi to insert a valid session row for the built-in sysadmin user, then reuses that cookie to access /files/download for a marked confidential file. This is a two-step chain: SQLi -> session forgery -> authenticated file exfiltration.",
-        "objective": "Forge a valid admin session via SQLi, then download /files/confidential/flag.bin using that session and POST its SHA-256 to /solve.",
-        "flag_hint": "/solve verifies the SHA-256 of the downloaded file matches the recorded value and returns the flag from /flag.txt on match.",
+        "objective": "Find SQL injection in the X-siLock-Comment header, forge a valid sysadmin session row via a stacked INSERT, then reuse that session cookie to download /files/download?path=confidential/flag.bin and POST its SHA-256 to /solve.",
+        "flag_hint": "Forge an admin session via the header SQLi, download the per-container confidential file with that session, and POST its SHA-256 to /solve to receive FLAG{...}. The file is unique per instance, so only an actual download validates.",
         "skills_taught": [
           "Header SQLi in enterprise appliances",
           "Session-row forgery via INSERT",
@@ -520,9 +520,11 @@
           "Reasoning about database-backed session stores"
         ],
         "tech_stack": [
-          "ASP.NET 8 on Debian 12 (Linux MSSQL client mode via native)",
-          "MSSQL Server 2022 Developer",
-          "nginx 1.27"
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "psycopg2 2.9",
+          "PostgreSQL 16.15"
         ],
         "inspired_by": "CVE-2023-34362 Progress MOVEit Transfer SQLi (abstracted; no proprietary code reproduced; only the chain shape)"
       },
