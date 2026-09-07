@@ -1,7 +1,7 @@
 # Solution — sqli-moveit-header-auth-bypass-chain
 
 > **OWASP:** A03:2021-Injection + A07:2021-Identification and Authentication
-> Failures · **CWE:** CWE-89 (SQLi) → CWE-384 (session forgery) · **CVE analog:**
+> Failures · **CWE:** CWE-89 (SQLi) → CWE-565 (reliance on an unvalidated session cookie) · **CVE analog:**
 > CVE-2023-34362 (MOVEit Transfer) — abstracted; only the chain shape is reused.
 
 ## What tipped you off
@@ -75,6 +75,25 @@ authorization check. So instead of _reading_ data, you **write** state: a single
 forged `sessions` row turns the injection into a valid identity. Attacking the
 session store, not just query results, is the lesson.
 
+## Least privilege: why the app's DB role matters
+
+The single most important control in this lab is invisible in the exploit: the
+application connects to Postgres as a **non-superuser** role (`moveitapp`) that
+holds only `INSERT` on `audit_log`/`sessions`, `SELECT` on `sessions`/`users`, and
+sequence `USAGE` — created by `db-init/01-init.sql`, which the bootstrap superuser
+runs once at startup.
+
+This matters because the injection sink runs stacked statements. A **superuser**
+role would let the very same `X-siLock-Comment` injection run
+`COPY ... FROM/TO PROGRAM '<cmd>'` — turning an auth-bypass into remote command
+execution inside the database container. Connecting as least-privilege forecloses
+that: `COPY ... PROGRAM` is superuser-only, so it fails with a permissions error,
+while the intended `INSERT INTO sessions` forgery (an ordinary table privilege)
+still works. The database also sits on a no-egress network as defense in depth.
+The lesson generalises: an app database role should never be a superuser, and
+"the ORM/driver protects us" is no substitute for least privilege when a sink can
+stack statements.
+
 ## Lab-vs-production deviations
 
 - **Stack abstracted to Linux.** The catalogue specified ASP.NET + MSSQL 2022 +
@@ -105,6 +124,9 @@ session store, not just query results, is the lesson.
 
 - **Parameterise the audit insert** (`cur.execute(sql, (comment, client_ip))`);
   bound parameters cannot introduce a second statement.
+- **Never connect the app as a database superuser** — a least-privilege role turns
+  even a successful stacked injection into, at worst, table writes (no `COPY
+PROGRAM` RCE). This lab ships exactly that hardening.
 - **Do not run multi-statement strings** from request-derived SQL; disable stacked
   queries at the data layer where possible.
 - **Sign sessions** (or store a server-side secret alongside the token) so a row

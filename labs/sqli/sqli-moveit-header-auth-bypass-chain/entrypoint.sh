@@ -31,8 +31,10 @@ while len(data) < 4096:
 open(os.path.join(os.environ.get("CONF_DIR", "/var/lib/lab/confidential"), "flag.bin"), "wb").write(data[:4096])
 PY
 
-# Seed the audit/session/user schema (waits for Postgres; db healthy via depends_on).
-python /opt/app/seed.py
+# The audit/session/user schema, seed data, AND the least-privilege application
+# role are created by the database's init SQL (db-init/01-init.sql, run once at
+# Postgres init). The app connects as that NON-superuser role, so a stacked-query
+# injection cannot reach COPY ... FROM/TO PROGRAM. Nothing to seed here.
 
 # Drop the secret so an app-side read cannot re-derive other instances' flags.
 unset LAB_USER_SECRET

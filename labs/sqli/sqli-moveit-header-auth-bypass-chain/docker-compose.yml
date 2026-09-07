@@ -17,6 +17,9 @@ services:
       DB_HOST: db
       DB_PORT: '5432'
       DB_NAME: moveit
+      # The app connects as a NON-superuser role (created by db-init/01-init.sql),
+      # NOT the bootstrap POSTGRES_USER. A non-superuser cannot COPY ... PROGRAM,
+      # so the stacked-query injection cannot escalate to RCE.
       DB_USER: moveitapp
       DB_PASSWORD: moveit-app-pw
     ports:
@@ -51,7 +54,8 @@ services:
         max-size: '10m'
         max-file: '3'
     networks:
-      - labnet
+      - edge
+      - backend
 
   db:
     image: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
@@ -65,8 +69,10 @@ services:
       - -c
       - shared_buffers=64MB
     environment:
-      POSTGRES_USER: moveitapp
-      POSTGRES_PASSWORD: moveit-app-pw
+      # Bootstrap SUPERUSER used only to run the init SQL (create schema + the
+      # least-privilege moveitapp role). The app never connects as this role.
+      POSTGRES_USER: moveit_admin
+      POSTGRES_PASSWORD: moveit-admin-pw
       POSTGRES_DB: moveit
       POSTGRES_HOST_AUTH_METHOD: scram-sha-256
     read_only: true
@@ -74,6 +80,10 @@ services:
       - /var/lib/postgresql/data:uid=70,gid=70,mode=0700,size=192m
       - /run/postgresql:uid=70,gid=70,size=8m
       - /tmp:size=16m
+    volumes:
+      # Init SQL, run once by the bootstrap superuser at first start (the tmpfs
+      # datadir is fresh every run, so it runs every start). Read-only mount.
+      - ./db-init:/docker-entrypoint-initdb.d:ro
     cap_drop:
       - ALL
     security_opt:
@@ -83,7 +93,7 @@ services:
     cpus: 1.0
     pids_limit: 200
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U moveitapp -d moveit -h 127.0.0.1 || exit 1']
+      test: ['CMD-SHELL', 'pg_isready -U moveit_admin -d moveit -h 127.0.0.1 || exit 1']
       interval: 5s
       timeout: 3s
       retries: 24
@@ -94,10 +104,19 @@ services:
         max-size: '10m'
         max-file: '3'
     networks:
-      - labnet
+      - backend
 
 networks:
-  labnet:
-    name: websec-lab_sqli-moveit_net
+  # The learner reaches the app via its published 127.0.0.1 port (port publishing
+  # does not work on an internal network), so the app sits on this normal bridge.
+  edge:
+    name: websec-lab_sqli-moveit_edge
     driver: bridge
     internal: false
+  # Defense-in-depth egress-drop: the database has no route off the host. Even
+  # though the least-privilege app role already forecloses COPY ... PROGRAM RCE,
+  # keeping the DB on a no-egress network matches the copy-program lab's standard.
+  backend:
+    name: websec-lab_sqli-moveit_backend
+    driver: bridge
+    internal: true

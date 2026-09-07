@@ -21,8 +21,16 @@ All notable changes to this project are documented here. Format loosely follows
 - Verified clean-room: fresh build, posture both containers (app uid 10001, db uid 70), image 143 MB, both
   Trivy gates green (Flask 3.1 / gunicorn 23 / psycopg2 2.9 / werkzeug 3.1.8 — 0 vulns), no-baked-flag,
   digest-pinned, exploit exit 0 in <1 s (download gated 403 before forgery → 200 after), checker solved.
+- **Least-privilege DB role (security-critical):** the app connects as a **non-superuser** Postgres role
+  (`moveitapp`, created by `db-init/01-init.sql` at init) with only INSERT on audit_log/sessions + SELECT on
+  sessions/users. This forecloses the unintended `COPY ... FROM/TO PROGRAM` RCE that a superuser app role
+  would expose through the same stacked-query sink; the intended plain-INSERT session forgery still works.
+  The DB is additionally placed on an `internal: true` no-egress network (defense in depth). (Addresses
+  AUDITOR BL-1: `POSTGRES_USER` is always a superuser, so the initial cut shipped a trivially-reachable
+  RCE with open egress.)
 - **Catalog reconcile (Hybrid)**: `tech_stack` → shipped Flask/Postgres; `objective`/`flag_hint` → the real
-  header-SQLi → session-forgery → SHA-256 chain. Adds OWASP A07 + CWE-384 (session forgery). Track → **21/25**.
+  header-SQLi → session-forgery → SHA-256 chain. Adds OWASP A07 + CWE-565 (reliance on an unvalidated
+  session cookie). Track → **21/25**.
 
 ### track-sqli-d-copy-program — Postgres SQLi → COPY FROM PROGRAM RCE chain (1, first RCE lab)
 

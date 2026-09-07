@@ -14,7 +14,7 @@
     "Reason about database-backed session stores as an injection target, not just a read surface"
   ],
   "owasp_categories": ["A03:2021-Injection", "A07:2021-Identification and Authentication Failures"],
-  "cwe_ids": ["CWE-89", "CWE-384"],
+  "cwe_ids": ["CWE-89", "CWE-565"],
   "prerequisites": ["sqli-second-order-registration"],
   "flag_hint": "Forge an admin session via header SQLi, download /files/download?path=confidential/flag.bin with that session, then POST its SHA-256 to /solve. /solve returns FLAG{...} when the hash matches this container's per-instance flag.bin.",
   "tech_stack": ["Python 3.12", "Flask 3.1", "gunicorn 23", "psycopg2 2.9", "PostgreSQL 16.15"],
