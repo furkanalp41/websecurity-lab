@@ -10,7 +10,7 @@
   "learning_objectives": [
     "Recognise NoSQL/query-DSL injection as the same class of flaw as classic SQLi",
     "Spot an app that forwards a user-supplied JSON body verbatim into a search DSL",
-    "Widen the search scope via a multi-index request or an _index term filter to reach an index the app never meant to expose",
+    "Widen the search scope via the JS object-spread precedence bug \u2014 a body-level `index` key sent to a search endpoint that does `search({index: 'logs', ...body})` overrides the intended scope and searches whatever index the caller chose",
     "Understand Painless script_fields (and the sandbox limits that make cross-index reads via script alone infeasible in 8.x)",
     "Reason about response filtering: script_fields returns fields the app did not select for"
   ],
