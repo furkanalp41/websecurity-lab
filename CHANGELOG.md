@@ -6,6 +6,30 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### track-sqli-d-copy-program — Postgres SQLi → COPY FROM PROGRAM RCE chain (1, first RCE lab)
+
+- `sqli-postgres-copy-program-rce-chain` (**elite**): the project's first **SQLi-to-RCE** lab. A FastAPI +
+  asyncpg metrics service connects to PostgreSQL 16 as a **superuser** (the mis-configuration). Two
+  concatenated sinks: a VISIBLE `GET /metrics?category=` (asyncpg `.fetch`, extended protocol, UNION-read)
+  and a STACKED-capable `POST /metrics/ingest` (asyncpg `.execute`, simple protocol). Chain: stacked
+  `CREATE TABLE loot; COPY loot FROM PROGRAM 'cat /labflag/flag.txt'` (command execution inside the Postgres
+  container) → UNION-read `loot` → `POST /solve`. The flag is planted on the **Postgres filesystem** (via a
+  superuser `COPY TO`, derived app-side — the raw secret never reaches Postgres), so only command execution
+  recovers it, never a SQL `SELECT`.
+- **Stays `risk: low`** (empirically justified + matches the AUDITOR charter checklist): `COPY FROM PROGRAM`
+  runs as the unprivileged postgres uid and needs **no added Linux capabilities**, so `cap_drop: ALL`,
+  read-only rootfs, `no-new-privileges`, and pids/mem caps are all kept intact. Containment is completed by
+  an **egress-drop network**: the Postgres container sits alone on an `internal: true` bridge with **no
+  default route** (verified: outbound DNS/TCP fails), so a shell from the RCE cannot phone home or pivot.
+  No new CI infra was needed (no `LAB_RISK=elevated` propagation, since the lab is `low`).
+- Verified clean-room: fresh build, posture gate both containers (app uid 10001, db uid 70, read_only,
+  cap_drop ALL, no-new-privileges, DB no host port), image 157 MB, both Trivy gates green (bumped
+  fastapi 0.115→**0.141.1** / starlette→**1.6.0** / uvicorn→**0.52.4** to clear 3 fixed starlette HIGH
+  CVEs), no-baked-flag, digest-pinned bases, exploit exit 0 in <1 s (two HTTP requests), checker solved.
+- **Catalog reconcile (Hybrid policy)**: `tech_stack` updated to the shipped versions (FastAPI 0.141,
+  asyncpg 0.30, PostgreSQL 16.15); `objective`/`flag_hint` corrected to the real two-sink COPY-FROM-PROGRAM
+  chain + the `risk:low` rationale. Takes the track to **20/25** implemented.
+
 ### track-sqli-d-layerslider — unauthenticated time-blind SQLi in a WP-style plugin (1, first PHP/WAF lab)
 
 - `sqli-layerslider-unauth-time-blind` (**elite**): the first lab on the **PHP 8.2 / Apache 2.4 /
