@@ -1,0 +1,45 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "sqli-fortinet-ems-fctuid-rce",
+  "title": "Header SQLi to RCE with Out-of-Band Exfil",
+  "track": "sqli",
+  "difficulty": "elite",
+  "estimated_minutes": 70,
+  "max_lifetime_minutes": 90,
+  "learning_objectives": [
+    "Find SQL injection in an enterprise device-registration header (X-FCTUID) concatenated into an INSERT",
+    "Chain stacked queries into COPY ... TO PROGRAM command execution held by a superuser app role",
+    "Evade a naive keyword IPS that flags SELECT/UNION by using a table-source COPY (no SELECT in the payload)",
+    "Exfiltrate the result out-of-band to a controlled collector and retrieve it, rather than reading it in-band",
+    "Understand why an intended-RCE lab stays risk:low: no added caps, and the database is on a no-egress network so the only reachable listener is the in-lab collector"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-89", "CWE-78"],
+  "prerequisites": ["sqli-postgres-copy-program-rce-chain"],
+  "flag_hint": "POST /device/register with an X-FCTUID header that stacks COPY ... TO PROGRAM to run a command reading the planted flag file and wget it to the in-lab collector (oob:9000). Read what the collector captured via GET /oob/received, then POST /solve {\"flag\":\"FLAG{...}\"}.",
+  "tech_stack": [
+    "Python 3.12",
+    "Flask 3.1",
+    "gunicorn 23",
+    "psycopg2 2.9",
+    "PostgreSQL 16.15 (superuser app role)",
+    "OOB collector sidecar"
+  ],
+  "tags": [
+    "sqli",
+    "header-injection",
+    "rce",
+    "copy-to-program",
+    "stacked-queries",
+    "out-of-band",
+    "ips-evasion",
+    "postgres",
+    "cwe-89",
+    "cwe-78"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "CVE-2023-48788 Fortinet FortiClient EMS SQLi to RCE (abstracted; no proprietary code reused)"
+}

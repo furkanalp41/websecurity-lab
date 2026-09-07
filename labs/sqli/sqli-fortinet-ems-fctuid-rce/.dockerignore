@@ -1,0 +1,11 @@
+.git
+.env*
+**/.aws
+**/.ssh
+node_modules
+__pycache__
+.pytest_cache
+tests
+SOLUTION.md
+hints
+README.md

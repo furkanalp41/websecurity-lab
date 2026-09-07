@@ -1,0 +1,163 @@
+# SPDX-License-Identifier: MIT
+name: websec-lab-sqli-fortinet-ems-fctuid-rce
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: websec-lab/sqli-fortinet-ems-fctuid-rce:dev
+    depends_on:
+      db:
+        condition: service_healthy
+      oob:
+        condition: service_healthy
+    environment:
+      LAB_USER_SECRET: ${LAB_USER_SECRET:?LAB_USER_SECRET is required}
+      FLAG_PATH: /var/lib/lab/flag.txt
+      DB_HOST: db
+      DB_PORT: '5432'
+      DB_NAME: ems
+      DB_USER: emsapp
+      DB_PASSWORD: ems-superuser-pw
+      OOB_HOST: oob
+      OOB_PORT: '9000'
+      PG_FLAG_PATH: /labflag/flag.txt
+    ports:
+      - '127.0.0.1:${LAB_HOST_PORT:-0}:8080'
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+      - /var/lib/lab:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
+    pids_limit: 200
+    ulimits:
+      nofile:
+        soft: 1024
+        hard: 2048
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen(''http://127.0.0.1:8080/health'').read()==b''ok'' else 1)" || exit 1'
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 20s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+    networks:
+      - edge
+      - backend
+
+  db:
+    image: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+    # Postgres runs as non-root uid 70. The app connects as the POSTGRES_USER
+    # role, which IS a superuser — INTENTIONAL here: this lab teaches
+    # COPY ... TO PROGRAM RCE, whose whole point is superuser abuse. Containment
+    # is by the standard sandbox (cap_drop:ALL / read_only / no-new-privileges)
+    # PLUS the `backend` network being `internal: true` (no route off the host),
+    # so the RCE cannot phone home to anything except the in-lab OOB collector.
+    user: '70:70'
+    command:
+      - postgres
+      - -c
+      - fsync=off
+      - -c
+      - full_page_writes=off
+      - -c
+      - shared_buffers=64MB
+    environment:
+      POSTGRES_USER: emsapp
+      POSTGRES_PASSWORD: ems-superuser-pw
+      POSTGRES_DB: ems
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+    read_only: true
+    tmpfs:
+      - /var/lib/postgresql/data:uid=70,gid=70,mode=0700,size=192m
+      - /run/postgresql:uid=70,gid=70,size=8m
+      - /tmp:size=16m
+      # Per-container flag lives here (planted by the app via superuser COPY TO)
+      # so it is recoverable only through command execution.
+      - /labflag:uid=70,gid=70,mode=0700,size=4m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
+    pids_limit: 200
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U emsapp -d ems -h 127.0.0.1 || exit 1']
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+    networks:
+      - backend
+
+  oob:
+    # Custom OOB collector — a tiny Python HTTP server (stdlib only) that stores
+    # whatever the RCE POSTs to it. Runs on the SAME image as the app to avoid
+    # pulling a second base image (Trivy scans the app image; the collector uses
+    # only stdlib so it adds no vuln surface).
+    image: websec-lab/sqli-fortinet-ems-fctuid-rce:dev
+    entrypoint: ['python', '/opt/app/oob_collector.py']
+    depends_on: []
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+      - /var/lib/oob:size=8m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    memswap_limit: 128m
+    cpus: 0.5
+    pids_limit: 50
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen(''http://127.0.0.1:9000/health'').read()==b''ok'' else 1)" || exit 1'
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+    networks:
+      - backend
+
+networks:
+  # The learner reaches the app via its published 127.0.0.1 port (port publishing
+  # does not work on an internal network), so the app sits on this normal bridge.
+  edge:
+    name: websec-lab_sqli-fortinet_edge
+    driver: bridge
+    internal: false
+  # Egress-drop network. `internal: true` gives it no route off the host, so the
+  # Postgres container (the RCE target) has NO outbound connectivity except to
+  # containers on this same network — meaning ONLY the in-lab `oob` collector is
+  # reachable from the RCE. That is the intended out-of-band channel.
+  backend:
+    name: websec-lab_sqli-fortinet_backend
+    driver: bridge
+    internal: true

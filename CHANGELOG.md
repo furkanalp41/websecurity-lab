@@ -6,6 +6,33 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### track-sqli-d-fortinet — header SQLi → RCE with OOB exfil (1, first OOB/IPS-evasion lab)
+
+- `sqli-fortinet-ems-fctuid-rce` (**elite**): abstracts **CVE-2023-48788 (FortiClient EMS)**. The
+  `X-FCTUID` header is concatenated into an INSERT run via psycopg2 `.execute()` (stacked). A naive
+  keyword IPS blocks `SELECT`/`UNION`/`FROM`/`INFORMATION_SCHEMA`/`SLEEP(`/`OR n=n`; the intended
+  bypass uses **table-source `COPY audit_log TO PROGRAM '<cmd>'`** (contains no `SELECT`), which
+  Postgres runs as a superuser (INTENTIONAL here — the lab teaches exactly this misconfiguration).
+  The RCE `wget`s the planted `/labflag/flag.txt` to an in-lab OOB collector sidecar; the learner
+  reads it via `GET /oob/received` (app-side proxy) and POSTs to `/solve`.
+- **3-service compose** (app + superuser-postgres + oob-collector on the SAME base image, stdlib
+  http.server — no extra image or Trivy surface) on **2 networks** (`edge` for app port publishing,
+  `backend` `internal: true` for db+oob). Verified live: db has no default route (Network unreachable
+  to 1.1.1.1), but db → `http://oob:9000` succeeds — collector is the ONLY listener reachable from
+  the RCE, exactly as designed.
+- **Stays `risk: low`** despite intentional RCE (same rationale as copy-program): `COPY PROGRAM` needs
+  no added Linux caps; `cap_drop:ALL` + read_only + no-new-privileges kept; the egress-drop provides
+  containment. Flag planted app-side via superuser `COPY TO` — the raw secret never reaches Postgres.
+- **Stack re-platformed to Linux (Flask + PostgreSQL)** from the catalog's ASP.NET/Windows Server
+  Core/MSSQL 2022/IIS spec (Windows containers cannot run on Linux Docker; MSSQL blows 512m/300MB).
+  Primitive preserved (psycopg2 `.execute()` stacks like `SqlCommand`; `COPY ... TO PROGRAM` is the
+  Postgres analogue of `xp_cmdshell`). IIS omitted as transport.
+- Verified clean-room: fresh build, posture ALL 3 containers (app 10001, db 70, oob 10001), 143 MB,
+  both Trivy gates green, no-baked-flag, digest-pinned, IPS blocks bare UNION (403), intended exploit
+  exit 0 in <1 s, checker solved.
+- **Catalog reconcile (Hybrid)**: `tech_stack` → shipped Flask/Postgres + OOB collector sidecar;
+  `objective`/`flag_hint` → the real header-SQLi → COPY-TO-PROGRAM → OOB chain. Track → **22/25**.
+
 ### track-sqli-d-moveit — header SQLi → session forgery → file exfil (1, first auth-bypass-by-write lab)
 
 - `sqli-moveit-header-auth-bypass-chain` (**elite**): abstracts **CVE-2023-34362 (MOVEit Transfer)**. An
