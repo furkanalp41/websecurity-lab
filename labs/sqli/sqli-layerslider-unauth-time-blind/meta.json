@@ -1,0 +1,48 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "sqli-layerslider-unauth-time-blind",
+  "title": "Unauthenticated Time-Blind SQLi in a WP-Style Slider Plugin",
+  "track": "sqli",
+  "difficulty": "elite",
+  "estimated_minutes": 60,
+  "max_lifetime_minutes": 90,
+  "learning_objectives": [
+    "Reach an unauthenticated admin-ajax action and recognise pre-auth attack surface in a WordPress-style plugin",
+    "Spot the wpdb->prepare() footgun: a query string built by concatenation with no %d/%s placeholder is NOT parameterised",
+    "Read data through a pure time-based oracle when the response body and status never vary with the payload",
+    "Bypass a CRS-baseline SQLi filter with inline-comment obfuscation (SLEEP/**/() and hex string literals (0x61646d696e) instead of quoted comments",
+    "Optimise extraction under a per-IP rate limiter with binary search parallelised across character positions",
+    "Understand why the recovered wp_users.user_pass is a 16-hex token here (not a 34-char phpass hash) so the automated exploit clears the <60s gate — the technique is identical at any length"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-89"],
+  "prerequisites": ["sqli-time-blind-mysql-sleep"],
+  "flag_hint": "POST /solve with JSON {\"hash\":\"<16-hex>\"} matching wp_users.user_pass for user_login='admin' returns the flag read from the flag file; any other value yields HTTP 403.",
+  "tech_stack": [
+    "Alpine 3.20",
+    "Apache 2.4",
+    "PHP 8.2",
+    "MariaDB 11.4",
+    "WordPress-style shim (custom, ~300 LOC)",
+    "CRS-baseline SQLi filter (app-level, paranoia-1 homage)"
+  ],
+  "tags": [
+    "sqli",
+    "time-based",
+    "blind",
+    "unauthenticated",
+    "waf-bypass",
+    "wordpress",
+    "wpdb-prepare",
+    "cwe-89"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": {
+    "container_port": 8080,
+    "protocol": "http",
+    "http_path": "/wp-admin/admin-ajax.php?action=ls_get_popup_markup&id=1"
+  },
+  "inspired_by": "CVE-2024-2879 LayerSlider unauthenticated SQL Injection (abstracted; original plugin code not reproduced)"
+}

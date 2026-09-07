@@ -79,6 +79,19 @@ Node-alpine multi-stage with the bundled npm stripped from the runtime; Ruby-sli
 with `pg` compiled from source and the stale default `resolv` gemspec dropped) are
 documented in each lab's `SOLUTION.md` and the `CHANGELOG`.
 
+### batch/track-sqli-d-layerslider (this batch — 1 lab, first PHP/WAF lab)
+
+- `sqli-layerslider-unauth-time-blind` (**elite**) — unauthenticated time-based blind SQLi through a
+  WordPress-style plugin AJAX action (`admin-ajax.php?action=ls_get_popup_markup`), abstracting
+  **CVE-2024-2879 (LayerSlider)**. Teaches the `wpdb::prepare()` concatenation footgun (a query built by
+  string interpolation with no `%d` placeholder is not parameterised), reading a secret through a pure
+  timing oracle (response body/status never vary), and **bypassing a CRS-baseline SQLi filter** with
+  inline-comment obfuscation (`SLEEP/**/(`) + hex string literals (`0x61646d696e`) under a per-IP rate
+  limiter. First lab in the track on the **PHP 8.2 / Apache 2.4 / MariaDB 11.4** stack (Alpine, 26 MB),
+  with an app-level WAF homage and a non-root app + non-root DB. Intended exploit lands the flag in
+  ~15–25 s; posture gate, both Trivy gates, `<300 MB`, and no-baked-flag all green. `user_pass` is a
+  16-hex token (documented deviation) so the rate-limited extraction clears the `<60 s` gate.
+
 ## Learning-objective coverage (batch-a)
 
 - ORDER BY / non-string injection contexts and CAST/error oracles — `sqli-order-by-numeric`
@@ -89,8 +102,10 @@ documented in each lab's `SOLUTION.md` and the `CHANGELOG`.
 
 ## Scheduled (future batches, Linux-feasible)
 
-**All Linux-feasible SQLi labs are implemented (18/25).** The remaining 7 catalog
-entries are the infeasible-as-specified labs in the next section, pending the
+**All straightforwardly-Linux-feasible SQLi labs are implemented (19/25).** The
+remaining 6 catalog entries are the infeasible-as-specified labs in the next
+section (one of which, `sqli-postgres-copy-program-rce-chain`, is Linux-feasible
+but needs the elevated-risk/egress-drop treatment), pending the
 operator's charter decision (abstract onto a Linux stack, grant a heavy
 resource-tier, or drop).
 

@@ -488,8 +488,8 @@
         "title": "Unauthenticated Blind SQLi in WP-Style Plugin (LayerSlider Homage)",
         "difficulty": "elite",
         "description": "A minimalist WordPress-like CMS ships a marketplace 'slideshow' plugin whose AJAX action /wp-admin/admin-ajax.php?action=ls_get_popup_markup passes the 'id' param into a raw wpdb->prepare call that concatenates instead of parameterising. No authentication is required. Rate-limiting slows time-based extraction to a crawl; students must optimise their extraction (parallel char probes, binary search).",
-        "objective": "Exfiltrate the wp_users.user_pass hash for user_login='admin' via unauthenticated time-based blind SQLi, then submit the full hash to POST /solve.",
-        "flag_hint": "/solve verifies the exact hash; on match executes /root/give-flag.sh which prints the flag from /flag.txt.",
+        "objective": "Exfiltrate wp_users.user_pass for user_login='admin' via unauthenticated time-based blind SQL injection through the slider plugin's admin-ajax action, bypassing the baseline SQLi filter, then submit the recovered value to POST /solve to claim the flag.",
+        "flag_hint": "POST /solve with JSON {\"hash\":\"<value>\"} matching wp_users.user_pass for user_login='admin' returns the per-container flag; any other value yields HTTP 403.",
         "skills_taught": [
           "Unauthenticated pre-auth SQLi patterns",
           "Optimising time-blind under rate limits",
@@ -497,11 +497,12 @@
           "Encoding characters into binary-search probes"
         ],
         "tech_stack": [
-          "PHP 8.2",
+          "Alpine 3.20",
           "Apache 2.4",
+          "PHP 8.2",
           "MariaDB 11.4",
           "WordPress-style shim (custom, ~300 LOC)",
-          "OWASP CRS 4.0 baseline WAF (paranoia 1)"
+          "CRS-baseline SQLi filter (app-level, paranoia-1 homage)"
         ],
         "inspired_by": "CVE-2024-2879 LayerSlider unauthenticated SQL Injection (abstracted; original plugin code not reproduced)"
       },
