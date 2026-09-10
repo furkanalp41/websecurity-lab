@@ -6,6 +6,32 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### track-xss-e-sanitizer — three filter/sanitiser/parser-bypass XSS labs (practitioner), workflow-authored
+
+Three ways a partial defence fails. **Workflow-authored** (3 author agents + 3 adversarial invariant-reviewers,
+pipelined) then **serially Docker-verified by hand**. Re-platformed to Flask (Go/Rails/PHP) — the
+filter/parser flaw is framework-independent.
+
+- `reflected-xss-script-tag-filtered-ladder` (**practitioner**): a single-pass substring blocklist strips
+  `<script`/`</script`/`javascript:`/`onerror=` (case-insensitive, one pass) then reflects raw. The blocklist
+  is incomplete — `<svg onload>` carries none of the blocked substrings and auto-fires. Teaches the bypass
+  ladder (unblocked handler; `onerror` with whitespace before `=`; recursive reconstruction survives
+  single-pass removal) and that an allowlist + contextual encoding is the real fix. Cookie theft.
+- `stored-xss-svg-avatar-upload` (**practitioner**): an avatar upload validates only Content-Type
+  `image/svg+xml` + a `<svg` magic prefix, never stripping `<script>`. The SVG is served `image/svg+xml` and
+  embedded on the profile via `<object>` (not `<img>`), so it runs as a **document in the app origin** — a
+  same-origin `fetch('/admin/token')` from inside carries the admin cookie. Teaches why `<img src>` is safe
+  but `<object>`/`<iframe>`/direct-nav execute SVG scripts. (Fixed a Flask `<uuid>`-converter bug in the
+  authored draft: store keys are `uuid4().hex` (no dashes), so the routes needed the string converter.)
+- `bbcode-parser-img-attribute-smuggling` (**practitioner**): `[img]URL[/img]` renders `<img src="URL">` with
+  the URL inserted RAW (rest of the post escaped), so a `"` in the URL smuggles an `onerror` out of the
+  attribute. Teaches HTML-attribute-context encoding. Cookie theft when the admin bot loads the board.
+- All Flask, all reuse the batch-a shape (app/bot/collector, edge + `internal:true` backend on the fixed
+  subnet, admin routes + `/internal/*` firewalled by cookie/source-IP). Verified clean-room per lab: exploit
+  exit 0 (both invocations), flag == expected HMAC, posture OK x3, anti-bypass 403s, egress-drop, app 135 MB,
+  no baked flag, **Trivy library gate clean (all 3)**, drift-lint 35, format/typecheck/lint/dockerfile-pin
+  green. SOLUTIONs carry the CWE-79/OWASP-A03 citation. `risk: low`.
+
 ### track-xss-d-context — three context/filter XSS labs (reflected / stored / blind), workflow-authored
 
 The three XSS delivery models, each with a context-or-filter twist that defeats a naive defence. All three
