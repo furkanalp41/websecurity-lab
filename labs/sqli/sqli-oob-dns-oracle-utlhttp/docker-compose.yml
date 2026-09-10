@@ -1,0 +1,150 @@
+# SPDX-License-Identifier: MIT
+name: websec-lab-sqli-oob-dns-oracle-utlhttp
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: websec-lab/sqli-oob-dns-oracle-utlhttp:dev
+    depends_on:
+      db:
+        condition: service_healthy
+      oob:
+        condition: service_healthy
+    environment:
+      LAB_USER_SECRET: ${LAB_USER_SECRET:?LAB_USER_SECRET is required}
+      FLAG_PATH: /var/lib/lab/flag.txt
+      DB_HOST: db
+      DB_PORT: '1521'
+      DB_SERVICE: XEPDB1
+      APP_USER: reportapp
+      APP_USER_PASSWORD: report-app-pw
+      ORACLE_PASSWORD: oracle-sys-pw
+      OOB_HOST: oob
+      OOB_PORT: '9000'
+    ports:
+      - '127.0.0.1:${LAB_HOST_PORT:-0}:8080'
+    read_only: true
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+      - /var/lib/lab:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
+    pids_limit: 200
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen(''http://127.0.0.1:8080/health'').read()==b''ok'' else 1)" || exit 1'
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 30s
+    logging: { driver: json-file, options: { max-size: '10m', max-file: '3' } }
+    networks:
+      - edge
+      - backend
+
+  db:
+    # Oracle Database 21c XE (Express Edition) via gvenzl's slim-faststart build —
+    # ~1.2 GB compressed / 4.4 GB uncompressed. Heavy-tier lab: runs in nightly
+    # matrix (resource_tier: heavy in meta.json), never on PRs. The size cap
+    # applies only to the built websec-lab/* image, not this pulled engine.
+    image: gvenzl/oracle-xe:21-slim-faststart@sha256:f82bccdf6020d27373fdf0e93046b63eb3f777a0289e329d9839feebaf4555de
+    # gvenzl's stock uid — Oracle refuses to run as root, and 54321 is the baked
+    # oracle:oinstall uid the image is built around.
+    user: '54321:54321'
+    environment:
+      ORACLE_PASSWORD: oracle-sys-pw
+      APP_USER: reportapp
+      APP_USER_PASSWORD: report-app-pw
+      # DELIBERATELY NOT setting ORACLE_DATABASE — faststart's whole point is the
+      # pre-seeded XEPDB1 PDB. Setting a new DB name triggers CREATE PLUGGABLE
+      # DATABASE that runs out of resources / ORA-03113 crashes under our caps.
+    read_only: true
+    tmpfs:
+      # /tmp:exec is required — Oracle's JNA-style native libraries load via
+      # mmap+exec, and the default noexec tmpfs kills startup (same pattern as ES).
+      - /tmp:exec,size=256m,mode=1777
+      # /var/tmp:exec is required — Oracle's TNS listener creates its IPC socket
+      # under /var/tmp/.oracle/. Without this the listener fails with
+      # "TNS-00516 Permission denied — Linux Error 30 Read-only file system".
+      - /var/tmp:exec,size=64m,mode=1777
+      - /home/oracle:uid=54321,gid=54321,mode=0770,size=64m
+      - /var/log:uid=54321,gid=54321,mode=0770,size=64m
+    volumes:
+      # Anonymous Docker volumes auto-populate from image contents on empty mount.
+      # These paths MUST be writable but their SHIPPED contents matter (spfile,
+      # listener.ora, pre-seeded PDB datafiles) — a bare tmpfs mount would wipe
+      # them. Anonymous volumes get cleaned up by `compose down --volumes`.
+      - /opt/oracle/oradata # ~1 GB pre-seeded PDB datafiles
+      - /opt/oracle/dbs # spfile, orapw, initora, hcXE
+      - /opt/oracle/homes # OraDBHome21cXE/network/admin (listener/tnsnames/sqlnet)
+      - /opt/oracle/admin # instance admin dir
+      - /opt/oracle/diag # traces, alerts, audit
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 2g
+    memswap_limit: 2g
+    cpus: 2.0
+    pids_limit: 500
+    ulimits:
+      nofile: { soft: 65536, hard: 65536 }
+    healthcheck:
+      # gvenzl ships healthcheck.sh that returns 0 once XEPDB1 is READ WRITE.
+      test: ['CMD-SHELL', 'healthcheck.sh']
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
+    logging: { driver: json-file, options: { max-size: '10m', max-file: '3' } }
+    networks:
+      - backend
+
+  oob:
+    image: websec-lab/sqli-oob-dns-oracle-utlhttp:dev
+    entrypoint: ['python', '/opt/app/oob_collector.py']
+    depends_on: []
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+      - /var/lib/oob:size=8m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    memswap_limit: 128m
+    cpus: 0.5
+    pids_limit: 50
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen(''http://127.0.0.1:9000/health'').read()==b''ok'' else 1)" || exit 1'
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 5s
+    logging: { driver: json-file, options: { max-size: '10m', max-file: '3' } }
+    networks:
+      - backend
+
+networks:
+  edge:
+    name: websec-lab_sqli-oracle-oob_edge
+    driver: bridge
+    internal: false
+  # Egress-drop: Oracle DB + OOB collector on this no-egress bridge. Oracle
+  # UTL_HTTP can reach the collector by container name, but NOT the internet —
+  # a leaked exfil channel out of the lab is impossible.
+  backend:
+    name: websec-lab_sqli-oracle-oob_backend
+    driver: bridge
+    internal: true

