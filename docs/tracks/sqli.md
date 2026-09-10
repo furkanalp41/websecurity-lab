@@ -161,23 +161,24 @@ http://oob:9000/x'` (superuser INTENTIONAL; table-source COPY has no `SELECT`, b
 - Building a boolean oracle from a subtle response difference + binary-search exfil — `sqli-boolean-blind-account-enum`
 - Second-order data flow (source ≠ sink, across endpoints/time) — `sqli-second-order-registration`
 
-## Scheduled (future batches, Linux-feasible)
+### batch/track-sqli-d-mssql-openrowset (this batch — 1 lab, 3rd heavy lab, 25/25 SQLi COMPLETE)
 
-**Implemented: 24/25.** Second heavy lab (Oracle 21c XE + UTL_HTTP OOB) live in
-the nightly matrix. Remaining 1 catalog entry: heavy-tier MSSQL xp_cmdshell (Windows-container MSSQL/Fortinet/MoVEit and
-heavy-tier Oracle/Elasticsearch). `sqli-postgres-copy-program-rce-chain` shipped as
-a `risk: low` egress-dropped RCE lab (COPY FROM PROGRAM needs no added caps). Pending the
-operator's charter decision (abstract onto a Linux stack, grant a heavy
-resource-tier, or drop).
+- `sqli-mssql-stacked-openrowset-exfil` (**expert**, `resource_tier: heavy`) — Stacked-query injection
+  in a Flask+pyodbc asset inventory backed by **MSSQL 2022 Developer (CU16, Linux)**. The search endpoint
+  (`/assets?category=<c>`) is blind (count only, no error text, jitter), but MSSQL evaluates every `;`-
+  separated statement in the batch. The student stacks an `INSERT INTO notices(title,body) SELECT
+  'exfil',mssql_secret FROM secrets` and reads the exfiltrated secret back via `GET /notices` (a
+  legitimate company-notices feed). Advanced bonus: enable `Ad Hoc Distributed Queries` via `sp_configure`
+  + `RECONFIGURE`, then read arbitrary files via `OPENROWSET(BULK '/etc/hostname', SINGLE_CLOB)`.
+  Re-platformed from the catalog's original Windows Nano Server / ASP.NET / xp_cmdshell spec — xp_cmdshell
+  is **unsupported on MSSQL Linux** (sp_configure rejects it); the stacked-query primitive and sp_configure
+  teaching are preserved. MSSQL hardening: `read_only:true`, `cap_drop:ALL`, `cap_add:NET_BIND_SERVICE`
+  (sqlservr binary carries `cap_net_bind_service=ep` file capability — this is the ONLY added cap; it
+  permits binding to ports <1024 and provides zero privilege escalation), `no-new-privileges:true`,
+  anonymous volume for `/var/opt/mssql`, non-root `mssql` user. 2-service compose (app + db), egress-drop
+  backend network. `risk:low` (no RCE, stacked queries run as SA within the DB, no host-level command
+  execution). posture both + Trivy gates green, exploit <2s.
 
-## Coverage gaps — infeasible as specified (needs an AUDITOR/operator charter decision)
+## SQLi Track Status
 
-These catalog labs cannot run under the platform's constraints (Linux Docker host,
-`mem_limit: 512m`, `<300 MB` image, `<60 s` exploit) and are **deferred pending a
-re-platform decision** (abstract the vuln class onto a Linux-runnable stack):
-
-- `sqli-mssql-stacked-xp-cmdshell` — specifies **Windows Nano Server** (Windows container; cannot run on a Linux host).
-
-Proposed resolution: re-platform the MSSQL/Oracle/Elasticsearch labs onto Linux-runnable
-equivalents that teach the same primitive (stacked queries / OOB exfil / DSL injection),
-and treat the RCE-chain lab as `risk: elevated`. Awaiting AUDITOR + operator sign-off.
+**Implemented: 25/25. SQLi track COMPLETE.** All catalog entries are shipped. Next: XSS track.

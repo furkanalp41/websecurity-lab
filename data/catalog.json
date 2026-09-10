@@ -400,25 +400,27 @@
         "resource_tier": "heavy"
       },
       {
-        "slug": "sqli-mssql-stacked-xp-cmdshell",
-        "title": "Stacked Queries and xp_cmdshell Reenablement on MSSQL",
+        "slug": "sqli-mssql-stacked-openrowset-exfil",
+        "title": "Stacked Queries + OPENROWSET BULK File Exfiltration on MSSQL",
         "difficulty": "expert",
-        "description": "An internal HR portal built with ASP.NET talks to MSSQL 2022 with SqlCommand and concatenated queries. The account it uses is sysadmin (as often happens in legacy shops). xp_cmdshell is disabled by default, but stacked queries let a student re-enable it via sp_configure with RECONFIGURE. Filters block spaces after semicolons; students learn to use %0A newlines and MSSQL comment styles.",
-        "objective": "Enable xp_cmdshell, run 'type C:\\flag.txt' (Windows container) and exfiltrate its content to the OOB collector on oob.lab:9000, then POST that content to /solve.",
-        "flag_hint": "/solve verifies against the seeded flag string; on match returns HTTP 200 with the flag in the body. The OOB collector at oob.lab:9000/log shows received data.",
+        "description": "An internal asset inventory system backed by MSSQL 2022 connects as SA (sysadmin) via pyodbc. The search endpoint concatenates user input and returns only a count — no echo, no errors, random jitter. But MSSQL executes every semicolon-separated statement in the batch (stacked queries), so the student can INSERT from the hidden secrets table into the notices table and read the exfiltrated data. Advanced path: enable OPENROWSET via sp_configure for arbitrary file reads.",
+        "objective": "Exfiltrate secrets.mssql_secret via stacked INSERT into the notices table, then POST /solve {\"secret\":\"<32 hex>\"}.",
+        "flag_hint": "Inject stacked queries: category=Laptops'; INSERT INTO notices(title,body) SELECT 'exfil',mssql_secret FROM secrets WHERE id=1; -- then GET /notices for the secret, POST /solve.",
         "skills_taught": [
           "MSSQL stacked queries semantics",
-          "sp_configure + RECONFIGURE + xp_cmdshell re-enablement",
-          "Windows container quirks",
-          "MSSQL OOB via xp_dirtree UNC paths"
+          "sp_configure + RECONFIGURE for feature enablement",
+          "OPENROWSET(BULK) for arbitrary file reads",
+          "Cross-table INSERT as data-channel exfiltration"
         ],
         "tech_stack": [
-          "ASP.NET 8.0 on Windows Nano Server 2022 base image",
-          "MSSQL Server 2022 Developer Edition",
-          "IIS 10",
-          "Go 1.23 OOB collector"
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "pyodbc 5.2",
+          "MSSQL Server 2022 Developer (CU16, Linux)"
         ],
-        "inspired_by": "SpecterOps and MDSec blog posts on modern MSSQL post-exploitation"
+        "inspired_by": "SpecterOps and MDSec MSSQL post-exploitation research, re-platformed to Linux (xp_cmdshell unavailable on Linux MSSQL)",
+        "resource_tier": "heavy"
       },
       {
         "slug": "sqli-elasticsearch-dsl-painless",

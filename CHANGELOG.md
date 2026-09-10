@@ -6,6 +6,28 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### track-sqli-d-mssql-openrowset — MSSQL Stacked Queries + OPENROWSET (1, 3rd heavy lab, 25/25 SQLi COMPLETE)
+
+- `sqli-mssql-stacked-openrowset-exfil` (**expert**, `resource_tier: heavy`): Stacked-query injection in a
+  Flask + pyodbc asset inventory backed by **MSSQL 2022 Developer (CU16, Linux)**. The search endpoint
+  (`/assets?category=<c>`) is blind (count only, no error text, random 100-600ms jitter). But MSSQL
+  evaluates every `;`-separated statement in the batch (unlike Oracle/MySQL), so the student stacks an
+  INSERT that copies `secrets.mssql_secret` into the `notices` table and reads it back via `GET /notices`.
+  Advanced path: enable `Ad Hoc Distributed Queries` via `sp_configure` + `RECONFIGURE`, then read
+  arbitrary files via `OPENROWSET(BULK '/etc/hostname', SINGLE_CLOB)`.
+- **Re-platformed from catalog's Windows spec**: original catalog specified Windows Nano Server / ASP.NET /
+  IIS / xp_cmdshell. xp_cmdshell is **not supported on MSSQL Linux** (`sp_configure` rejects it). The
+  stacked-query primitive and `sp_configure` teaching are preserved; OPENROWSET BULK replaces xp_cmdshell
+  as the advanced file-access vector. Catalog entry updated to reflect the Linux re-platform.
+- **MSSQL 2022 hardening pattern empirically verified**: `read_only:true` + anonymous volume for
+  `/var/opt/mssql` (DB auto-populates template files on first start); `cap_drop:ALL` + `cap_add:
+  NET_BIND_SERVICE` (sqlservr carries `cap_net_bind_service=ep` file capability — the ONLY added cap,
+  permits binding privileged ports, zero privilege escalation); `no-new-privileges:true`; non-root `mssql`
+  user (image default). 2-service compose (app + db), egress-drop backend network.
+- `risk:low` — no RCE (stacked queries run within the DB as SA; xp_cmdshell is unavailable).
+- posture PASS both (app uid 10001, db uid mssql); exploit exit 0 in <2s.
+- **SQLi track COMPLETE: 25/25 labs shipped.** Next track: XSS.
+
 ### track-sqli-d-oracle-oob — Oracle SQLi → UTL_HTTP OOB exfil (1, second heavy lab)
 
 - `sqli-oob-dns-oracle-utlhttp` (**expert**, `resource_tier: heavy`): SQLi in a Flask + python-oracledb
