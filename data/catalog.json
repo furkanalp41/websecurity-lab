@@ -192,7 +192,7 @@
         ],
         "tech_stack": [
           "Python 3.12",
-          "Django 5.1",
+          "Django 5.2",
           "gunicorn 22",
           "PostgreSQL 16",
           "psycopg 3"
@@ -347,7 +347,7 @@
         ],
         "tech_stack": [
           "Python 3.12",
-          "Django 5.1",
+          "Django 5.2",
           "gunicorn 22",
           "PostgreSQL 16",
           "psycopg 3"
@@ -601,7 +601,7 @@
         ],
         "tech_stack": [
           "Python 3.12",
-          "Django 5.1",
+          "Django 5.2",
           "gunicorn 23",
           "PostgreSQL 16",
           "@websec-lab/xss-verifier headless-Chromium bot",
@@ -7861,7 +7861,7 @@
           "eTLD+1 reasoning"
         ],
         "tech_stack": [
-          "Django 5.1",
+          "Django 5.2",
           "Postgres 16",
           "nginx 1.27 hosting blog + app on subdomains",
           "Playwright 1.47",
@@ -8405,7 +8405,7 @@
         ],
         "tech_stack": [
           "Python 3.12",
-          "Django 5.1",
+          "Django 5.2",
           "PyCryptodome 3.20",
           "gunicorn 22",
           "PostgreSQL 16",
