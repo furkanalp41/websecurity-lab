@@ -112,6 +112,19 @@ Three ways a partial defence fails. Workflow-authored, serially Docker-verified;
 
 All reuse the batch-a shape; `risk: low`. XSS 10/26 after merge.
 
+### batch/track-xss-f-framework (this batch — framework template/selector injection)
+
+Client-side framework sinks; each vendors its EOL framework locally (that version is the vuln). All Flask.
+
+- `jquery-location-hash-selector` (**practitioner**) — `$(location.hash.slice(1))`; jQuery `$()` constructs
+  an `<img onerror>` from the fragment (jQuery 3.4.1).
+- `angularjs-sandbox-escape-172` (**expert**) — `?name=` reflected HTML-escaped into `ng-app`; escaping
+  doesn't stop `{{ constructor.constructor(…)() }}` (AngularJS 1.7.2, sandbox-less). CSTI.
+- `vue2-template-compile-injection` (**expert**) — `Vue.compile()` of a stored widget template (read from a
+  hidden div via `textContent`, which decodes) → expression reaches `Function`, fetches `/me` (Vue 2.7.16).
+
+All reuse the batch-a shape; `risk: low`. XSS 13/26 after merge.
+
 ## Scheduled (from `data/catalog.json`)
 
 Reflected (done: 1) → stored → DOM → filter-ladder/sanitiser bypass →
