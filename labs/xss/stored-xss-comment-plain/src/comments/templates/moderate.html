@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Moderation — The Bugle</title>
+  </head>
+  <body>
+    <h1>Pending comments</h1>
+    <p>Review comments awaiting approval.</p>
+    {% for c in comments %}
+    <div class="pending">
+      <strong>{{ c.author }}</strong> wrote: {# VULNERABILITY: `|safe` disables Django's
+      autoescaping, so a stored comment body is rendered as raw HTML — stored XSS in the admin's
+      page. #}
+      <div class="body">{{ c.body|safe }}</div>
+    </div>
+    {% empty %}
+    <p>Nothing to moderate.</p>
+    {% endfor %}
+  </body>
+</html>

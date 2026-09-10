@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+  <head>
+    <title>The Bugle</title>
+  </head>
+  <body>
+    <h1>The Bugle</h1>
+    <p>Community notes. Leave a comment — our staff reviews new ones before they appear.</p>
+    <form action="/comment" method="post">
+      <input name="author" placeholder="name" />
+      <textarea name="body" placeholder="your comment"></textarea>
+      <button type="submit">Post</button>
+    </form>
+    <h2>Approved comments</h2>
+    {% for c in comments %}
+    <div class="comment"><strong>{{ c.author }}</strong>: {{ c.body }}</div>
+    {% empty %}
+    <p>No approved comments yet.</p>
+    {% endfor %}
+  </body>
+</html>
