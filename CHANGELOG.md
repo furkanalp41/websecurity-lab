@@ -21,7 +21,7 @@ All notable changes to this project are documented here. Format loosely follows
   as the advanced file-access vector. Catalog entry updated to reflect the Linux re-platform.
 - **MSSQL 2022 hardening pattern empirically verified**: `read_only:true` + anonymous volume for
   `/var/opt/mssql` (DB auto-populates template files on first start); `cap_drop:ALL` + `cap_add:
-  NET_BIND_SERVICE` (sqlservr carries `cap_net_bind_service=ep` file capability — the ONLY added cap,
+NET_BIND_SERVICE` (sqlservr carries `cap_net_bind_service=ep` file capability — the ONLY added cap,
   permits binding privileged ports, zero privilege escalation); `no-new-privileges:true`; non-root `mssql`
   user (image default). 2-service compose (app + db), egress-drop backend network.
 - `risk:low` — no RCE (stacked queries run within the DB as SA; xp_cmdshell is unavailable).

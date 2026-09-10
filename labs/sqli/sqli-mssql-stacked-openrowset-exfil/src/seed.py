@@ -35,9 +35,9 @@ CONN_STR = (
 
 SECRET = hmac.new(
     LAB_USER_SECRET.encode(),
-    b"v1|mssql-secret",
-    hashlib.md5,
-).hexdigest()
+    b"mssql-secret|sqli-mssql-stacked-openrowset-exfil",
+    hashlib.sha256,
+).hexdigest()[:32]
 
 
 def wait_for_mssql(retries: int = 30, delay: float = 2.0) -> pyodbc.Connection:

@@ -167,17 +167,17 @@ http://oob:9000/x'` (superuser INTENTIONAL; table-source COPY has no `SELECT`, b
   in a Flask+pyodbc asset inventory backed by **MSSQL 2022 Developer (CU16, Linux)**. The search endpoint
   (`/assets?category=<c>`) is blind (count only, no error text, jitter), but MSSQL evaluates every `;`-
   separated statement in the batch. The student stacks an `INSERT INTO notices(title,body) SELECT
-  'exfil',mssql_secret FROM secrets` and reads the exfiltrated secret back via `GET /notices` (a
+'exfil',mssql_secret FROM secrets` and reads the exfiltrated secret back via `GET /notices` (a
   legitimate company-notices feed). Advanced bonus: enable `Ad Hoc Distributed Queries` via `sp_configure`
-  + `RECONFIGURE`, then read arbitrary files via `OPENROWSET(BULK '/etc/hostname', SINGLE_CLOB)`.
-  Re-platformed from the catalog's original Windows Nano Server / ASP.NET / xp_cmdshell spec — xp_cmdshell
-  is **unsupported on MSSQL Linux** (sp_configure rejects it); the stacked-query primitive and sp_configure
-  teaching are preserved. MSSQL hardening: `read_only:true`, `cap_drop:ALL`, `cap_add:NET_BIND_SERVICE`
-  (sqlservr binary carries `cap_net_bind_service=ep` file capability — this is the ONLY added cap; it
-  permits binding to ports <1024 and provides zero privilege escalation), `no-new-privileges:true`,
-  anonymous volume for `/var/opt/mssql`, non-root `mssql` user. 2-service compose (app + db), egress-drop
-  backend network. `risk:low` (no RCE, stacked queries run as SA within the DB, no host-level command
-  execution). posture both + Trivy gates green, exploit <2s.
+  - `RECONFIGURE`, then read arbitrary files via `OPENROWSET(BULK '/etc/hostname', SINGLE_CLOB)`.
+    Re-platformed from the catalog's original Windows Nano Server / ASP.NET / xp_cmdshell spec — xp_cmdshell
+    is **unsupported on MSSQL Linux** (sp_configure rejects it); the stacked-query primitive and sp_configure
+    teaching are preserved. MSSQL hardening: `read_only:true`, `cap_drop:ALL`, `cap_add:NET_BIND_SERVICE`
+    (sqlservr binary carries `cap_net_bind_service=ep` file capability — this is the ONLY added cap; it
+    permits binding to ports <1024 and provides zero privilege escalation), `no-new-privileges:true`,
+    anonymous volume for `/var/opt/mssql`, non-root `mssql` user. 2-service compose (app + db), egress-drop
+    backend network. `risk:low` (no RCE, stacked queries run as SA within the DB, no host-level command
+    execution). posture both + Trivy gates green, exploit <2s.
 
 ## SQLi Track Status
 

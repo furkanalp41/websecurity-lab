@@ -27,6 +27,7 @@
   ],
   "tags": ["sqli", "stacked-queries", "mssql", "openrowset", "file-read", "heavy-tier", "cwe-89"],
   "risk": "low",
+  "elevated_caps": ["NET_BIND_SERVICE"],
   "resource_tier": "heavy",
   "authors": ["furkanalp41"],
   "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },

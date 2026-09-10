@@ -95,8 +95,13 @@ EXEC xp_cmdshell 'type C:\flag.txt';
 ```
 
 On Linux MSSQL, `xp_cmdshell` is **not supported** — `sp_configure`
-rejects the option. This forces the attacker to find alternative vectors
-(OPENROWSET, CLR assemblies, linked servers) that work on the Linux kernel.
+rejects the option. Other Windows-only vectors (OLE Automation via
+`sp_OACreate`, SQL Server Agent jobs) are also unavailable. CLR stored
+procedures ARE supported on Linux, but only with `PERMISSION_SET = SAFE`
+— MSSQL on Linux rejects `UNSAFE` and `EXTERNAL_ACCESS` assemblies
+(Msg 10342: "this edition only supports SAFE assemblies"), so CLR cannot
+spawn processes, do file I/O, or make network calls. The practical
+alternative for file access is OPENROWSET BULK (demonstrated above).
 
 ## Defence Notes
 
