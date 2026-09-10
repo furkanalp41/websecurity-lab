@@ -1,0 +1,35 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "sqli-mssql-stacked-openrowset-exfil",
+  "title": "Stacked Queries + OPENROWSET BULK File Exfiltration on MSSQL",
+  "track": "sqli",
+  "difficulty": "expert",
+  "estimated_minutes": 50,
+  "max_lifetime_minutes": 90,
+  "learning_objectives": [
+    "Recognise SQL injection in a MSSQL-backed search endpoint where the response is normalised to a count (no result echo, no error text)",
+    "Exploit MSSQL stacked queries: unlike Oracle/MySQL, MSSQL executes every semicolon-separated statement in a batch",
+    "Use sp_configure + RECONFIGURE to enable Ad Hoc Distributed Queries at runtime as sysadmin",
+    "Read arbitrary server-side files via OPENROWSET(BULK ... SINGLE_CLOB)",
+    "Exfiltrate data through a cross-table INSERT into a table the application exposes on a different endpoint"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-89"],
+  "prerequisites": ["sqli-time-blind-mysql-sleep"],
+  "flag_hint": "Inject stacked queries: category=Laptops'; INSERT INTO notices(title,body) SELECT 'exfil',mssql_secret FROM secrets WHERE id=1; -- then GET /notices for the secret, POST /solve {\"secret\":\"<32 hex>\"}. Bonus: enable OPENROWSET via sp_configure for arbitrary file reads.",
+  "tech_stack": [
+    "Python 3.12",
+    "Flask 3.1",
+    "gunicorn 23",
+    "pyodbc 5.2",
+    "MSSQL Server 2022 Developer (CU16, Linux)"
+  ],
+  "tags": ["sqli", "stacked-queries", "mssql", "openrowset", "file-read", "heavy-tier", "cwe-89"],
+  "risk": "low",
+  "elevated_caps": ["NET_BIND_SERVICE"],
+  "resource_tier": "heavy",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "SpecterOps and MDSec MSSQL post-exploitation research — abstracted to stacked queries + OPENROWSET BULK on Linux MSSQL (xp_cmdshell unavailable on Linux)"
+}
