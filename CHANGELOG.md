@@ -6,6 +6,34 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### track-sqli-d-oracle-oob — Oracle SQLi → UTL_HTTP OOB exfil (1, second heavy lab)
+
+- `sqli-oob-dns-oracle-utlhttp` (**expert**, `resource_tier: heavy`): SQLi in a Flask + python-oracledb
+  reports endpoint escalating to an out-of-band HTTP call via Oracle's `UTL_HTTP` package. The endpoint
+  returns a fixed "found N reports" summary with no error text and ~100-600ms jitter — three doors closed
+  at once for the in-band-read strategy. But the app's DB role (REPORTAPP) has `EXECUTE ON UTL_HTTP` +
+  a narrow network ACL for host `oob` port 9000, so the injection embeds a **scalar-subquery
+  UTL_HTTP.REQUEST** into the WHERE-clause concat, which Oracle evaluates as a side effect during query
+  processing. The collector logs the beacon; the app's `/oob/received` proxy reveals the exfil; POST /solve
+  redeems the flag.
+- **Stack re-platformed Java/Spring Boot → Python/Flask (Hybrid policy):** taught primitive is
+  language-independent (JDBC and python-oracledb behave identically for the concat sink); Oracle DB IS
+  preserved as the engine (the lesson is Oracle's package model, not the app language).
+- **Empirically verified Oracle 21c XE hardening pattern** (recorded to memory): rootfs stays `read_only:
+true`, anonymous Docker volumes auto-populate `/opt/oracle/oradata|dbs|homes|admin|diag` from image on
+  empty mount; `/tmp:exec` + `/var/tmp:exec` tmpfs required (JNA mmap+exec + TNS IPC socket in
+  `/var/tmp/.oracle/`). Faststart's pre-seeded XEPDB1 must be used — DO NOT set `ORACLE_DATABASE`
+  (fresh-PDB creation OOMs under caps).
+- **Egress-drop verified live**: DB has no default route; `bash -c '</dev/tcp/1.1.1.1/443>'` fails with
+  Network is unreachable; but db → oob:9000 works. Egress-drop closes any exfil channel other than the
+  in-lab collector. `risk: low` — no RCE primitive on this ACL.
+- 3-service compose (app + Oracle + OOB collector on same base image); posture PASS all 3 (app 10001, db
+  54321, oob 10001); app image 160 MB; Oracle image 4.4 GB (pulled engine, not size-capped per denetle's
+  Q5); both Trivy gates green on own app image; exploit exit 0 in ~1.4 s; checker solved; no-baked-flag;
+  digest-pinned; drift-lint green (24 impl, partition 22+2=24 complete).
+- **Catalog reconcile (Hybrid)**: `tech_stack` → shipped Flask + oracledb + Oracle 21c XE + OOB collector;
+  `resource_tier: heavy` added; `objective`/`flag_hint` → real scalar-subquery UTL_HTTP chain. Track → **24/25**.
+
 ### track-sqli-d-heavy-infra-plus-es — heavy-tier CI/schema + first heavy lab (Elasticsearch DSL)
 
 Shared infra + a real heavy consumer, per AUDITOR's design-preflight PASS (C1+C3+C5).
