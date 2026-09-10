@@ -96,6 +96,22 @@ re-platformed from the catalog's Node/FastAPI where the sink is framework-indepe
 
 All reuse the batch-a shape; `risk: low`. XSS 7/26 after merge.
 
+### batch/track-xss-e-sanitizer (this batch — filter/sanitiser/parser bypass, practitioner)
+
+Three ways a partial defence fails. Workflow-authored, serially Docker-verified; all Flask
+(re-platformed Go/Rails/PHP).
+
+- `reflected-xss-script-tag-filtered-ladder` (**practitioner**) — a single-pass substring
+  blocklist (`<script`/`onerror=`/…) is incomplete; `<svg onload>` sails through. Bypass-ladder
+  pedagogy; the fix is an allowlist + contextual encoding.
+- `stored-xss-svg-avatar-upload` (**practitioner**) — an SVG passes a Content-Type + `<svg`-prefix
+  check but keeps `<script>`; served `image/svg+xml` and embedded via `<object>` → runs as a document
+  in-origin → reads `/admin/token`. `<img src>` would be safe; `<object>` is not.
+- `bbcode-parser-img-attribute-smuggling` (**practitioner**) — `[img]URL[/img]` inserts the URL
+  unencoded into `src="…"`; a `"` smuggles an `onerror`. Attribute-context encoding is the fix.
+
+All reuse the batch-a shape; `risk: low`. XSS 10/26 after merge.
+
 ## Scheduled (from `data/catalog.json`)
 
 Reflected (done: 1) → stored → DOM → filter-ladder/sanitiser bypass →

