@@ -29,7 +29,7 @@ from flask import Flask, Response, request
 FLAG_PATH = os.environ.get("FLAG_PATH", "/var/lib/lab/flag.txt")
 DB_HOST = os.environ.get("DB_HOST", "db")
 DB_PORT = int(os.environ.get("DB_PORT", "1521"))
-DB_SERVICE = os.environ.get("DB_SERVICE", "REPORTS")
+DB_SERVICE = os.environ.get("DB_SERVICE", "XEPDB1")
 APP_USER = os.environ.get("APP_USER", "reportapp")
 APP_PASSWORD = os.environ.get("APP_USER_PASSWORD", "")
 OOB_HOST = os.environ.get("OOB_HOST", "oob")

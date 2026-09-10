@@ -14,7 +14,7 @@ PY
 chmod 0640 "$FLAG_PATH" 2>/dev/null || true
 
 # Seed Oracle:
-#   - as SYS: GRANT EXECUTE ON UTL_HTTP + DBMS_LOCK to REPORTAPP; create a
+#   - as SYS: GRANT EXECUTE ON UTL_HTTP to REPORTAPP; create a
 #     NETWORK ACL that permits REPORTAPP to make HTTP calls to the in-lab
 #     collector (host=oob, port 9000). Oracle 12c+ requires this.
 #   - as REPORTAPP: create the `reports` schema and insert a random
