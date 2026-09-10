@@ -6,6 +6,36 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### track-xss-d-context — three context/filter XSS labs (reflected / stored / blind), workflow-authored
+
+The three XSS delivery models, each with a context-or-filter twist that defeats a naive defence. All three
+were **authored in parallel by a Workflow** (one agent per lab from a precise spec + the reference template),
+adversarially invariant-reviewed, then **serially Docker-verified by hand** (the shared daemon + fixed backend
+subnet force serialized container runs). Re-platformed to Flask per the Hybrid policy where the catalog named
+Node/Express/FastAPI — the sink/context is the lesson, not the framework.
+
+- `reflected-xss-js-string-break-out` (**apprentice**): reflected into a single-quoted inline JS-string
+  literal; the app "sanitises" by stripping angle brackets, which does nothing in a JS-string context. The
+  payload closes the string with a quote and runs JS that credentialed-fetches `/api/whoami` (admin token,
+  cookie-gated) and beacons it out. Teaches: the wrong encoder for the context. `/api/whoami` returns the
+  token only to the admin cookie, so the host-side attacker can't read it without the XSS firing in the bot.
+- `iframe-srcdoc-attribute-injection` (**practitioner**): stored; a Bleach 6.2 allowlist permits
+  `<iframe srcdoc>`. Bleach vets tag/attribute _names_, not the fact that `srcdoc`'s _value_ is an HTML
+  document parsed in an inherited-origin `about:srcdoc` context — so a `<script>` inside srcdoc runs with the
+  parent origin's cookies. Verified live: Bleach emits `srcdoc="&lt;script&gt;…"`, the browser decodes it and
+  the script executes on iframe load (no click). Cookie theft → `/admin/feed` (admin-gated) → `/solve`.
+- `blind-xss-admin-user-agent-log` (**practitioner**): blind; every request's raw `User-Agent` is stored and
+  rendered into an admin-only log panel via an autoescape-disabled Jinja render, never reflected to the
+  sender. The payload lies dormant until the admin bot loads `/admin/logs`, then chains a same-origin
+  `fetch('/admin/apikey')` (admin-gated) and beacons the key. Teaches blind-XSS methodology + HTTP-header
+  stored sink + chaining to an authenticated internal read. The app excludes infra paths from the UA log so
+  the bot's own polling can't evict the payload.
+- All three reuse the batch-a shape (app/bot/collector, edge + `internal:true` backend on the fixed subnet,
+  `/internal/*` + admin routes firewalled by source-IP/cookie). Verified clean-room per lab: exploit exit 0
+  (both `--target` and `$1`), flag == expected HMAC, posture OK x3, anti-bypass 403s, egress-drop, app
+  135–136 MB, no baked flag, **Trivy library gate clean (all 3)**, drift-lint 32, format/typecheck/lint/
+  dockerfile-pin green. SOLUTIONs carry the CWE-79/OWASP-A03 citation. `risk: low`.
+
 ### track-xss-c-stored — Stored XSS on a real Django + PostgreSQL stack
 
 - `stored-xss-comment-plain` (**apprentice**): the track's first **stored** XSS and first non-Flask stack.

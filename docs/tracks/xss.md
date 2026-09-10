@@ -79,6 +79,23 @@ client-side sinks (the fragment never reaches the server). `risk: low`.
   the admin renders. 4 services (Django app / Postgres / bot with `XSSBOT_FIXED_URL` /
   collector); Postgres reuses the SQLi hardening (non-root uid 70). `risk: low`.
 
+### batch/track-xss-d-context (this batch — reflected / stored / blind, each with a context twist)
+
+The three delivery models, each defeating a naive defence. **Workflow-authored** (one agent per lab from a
+precise spec, adversarially invariant-reviewed) then **serially Docker-verified by hand**. All Flask,
+re-platformed from the catalog's Node/FastAPI where the sink is framework-independent.
+
+- `reflected-xss-js-string-break-out` (**apprentice**) — reflected into a single-quoted inline JS string;
+  angle-bracket strip is the wrong encoder → break out with a quote, credentialed-fetch a cookie-gated
+  `/api/whoami`, exfil the admin token.
+- `iframe-srcdoc-attribute-injection` (**practitioner**) — stored; Bleach allowlist permits `<iframe srcdoc>`;
+  the srcdoc value is an HTML doc in `about:srcdoc` (inherited origin) → script runs, steals `document.cookie`.
+- `blind-xss-admin-user-agent-log` (**practitioner**) — blind; the raw `User-Agent` is stored and rendered
+  `|safe` in an admin-only log panel (never reflected), fires when the bot loads it → chains a same-origin
+  `fetch('/admin/apikey')`.
+
+All reuse the batch-a shape; `risk: low`. XSS 7/26 after merge.
+
 ## Scheduled (from `data/catalog.json`)
 
 Reflected (done: 1) → stored → DOM → filter-ladder/sanitiser bypass →
