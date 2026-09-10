@@ -6,6 +6,26 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### track-xss-c-stored — Stored XSS on a real Django + PostgreSQL stack
+
+- `stored-xss-comment-plain` (**apprentice**): the track's first **stored** XSS and first non-Flask stack.
+  A Django blog stores comment bodies verbatim; the admin-only moderation page renders each pending body
+  with Django's `|safe` filter (Django autoescapes by default — `|safe` is the footgun). An admin bot loads
+  `GET /admin/moderate` every few seconds with its non-HttpOnly `session` cookie, so a stored `<img onerror>`
+  comment runs in the admin's browser and beacons the cookie to the collector → `/oob/received` → `/solve`.
+  Teaches the source≠sink / attacker≠victim shape: `/admin/moderate` is admin-only (403 for the attacker),
+  so you never load the page you attack — you plant a payload the admin renders.
+- **New stack, same hardened pattern**: 4 services — Django `app` (gunicorn, the size/Trivy-gated
+  `websec-lab/` image, 172MB), `db` (PostgreSQL 16, reused SQLi hardening: non-root uid 70, read_only +
+  tmpfs data), `bot` (shared verifier, `XSSBOT_FIXED_URL=/admin/moderate` — no report queue for stored XSS),
+  `collector`. Backend network `internal:true` egress-drop on the fixed subnet; `/admin/moderate` +
+  `/internal/bot-login` firewalled to the admin cookie / backend by source IP + BOT_KEY. `risk: low`.
+- Django kept minimal + hardened under `read_only` (no SessionMiddleware/auth/CSRF; `post_comment` is
+  `csrf_exempt` so an attacker can post with a bare request; migrations run at entrypoint against Postgres).
+- Verified clean-room: exploit exit 0 (both invocations), flag == expected HMAC, posture OK x4 (app 10001,
+  bot botuser, collector 10001, db 70), anti-bypass 403s, egress-drop, app 172MB, no baked flag, drift-lint
+  green (29 impl). SOLUTION carries the CWE-79/OWASP-A03 citation.
+
 ### track-xss-b-dom — two DOM-XSS apprentice labs (client-side sinks on the shared verifier)
 
 - `dom-xss-hash-document-write` (**apprentice**): DOM XSS where `location.hash` flows into `document.write`

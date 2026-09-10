@@ -69,6 +69,16 @@ DB engine, not a size-capped build.
 Both reuse the batch-a shape verbatim; the DOM labs validate the verifier on purely
 client-side sinks (the fragment never reaches the server). `risk: low`.
 
+### batch/track-xss-c-stored (this batch — first stored XSS, first non-Flask stack)
+
+- `stored-xss-comment-plain` (**apprentice**) — stored XSS on **Django + PostgreSQL**.
+  The admin-only moderation page renders pending comment bodies with Django's `|safe`
+  filter (autoescape-off footgun); an admin bot loads it with its non-HttpOnly session,
+  so a stored `<img onerror>` comment steals the cookie. Teaches source≠sink /
+  attacker≠victim — you never load `/admin/moderate` (admin-only), you plant a payload
+  the admin renders. 4 services (Django app / Postgres / bot with `XSSBOT_FIXED_URL` /
+  collector); Postgres reuses the SQLi hardening (non-root uid 70). `risk: low`.
+
 ## Scheduled (from `data/catalog.json`)
 
 Reflected (done: 1) → stored → DOM → filter-ladder/sanitiser bypass →
