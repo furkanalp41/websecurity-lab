@@ -37,7 +37,31 @@ Node/Express and Node/NestJS) — the sink is framework-independent.
   exit 0 (both `--target` and `$1`), flag == expected HMAC, **negative control 0 beacons**, posture OK ×3,
   anti-bypass 403s, egress-drop, app 142–144 MB, no baked flag, **Trivy library + OS gates clean (both, incl.
   nh3 0.2.20)**, drift-lint 37, prettier/format/catalog green. SOLUTIONs carry the CWE-79/OWASP-A03 citation.
-  `risk: low`. XSS 12/26 implemented on this branch (15/26 once `track-xss-f-framework` / PR #20 also lands).
+  `risk: low`. XSS 15/26 on main after this merge (`track-xss-f-framework` landed first, PR #20).
+
+### track-xss-f-framework — three client-side framework template/selector-injection labs
+
+Framework-specific client-side sinks. Each vendors its **intentionally end-of-life** framework locally
+(egress-drop = no CDN) because that vulnerable version IS the lesson. Two were authored by the (repeatedly
+process-orphaned) Workflow and finished/verified by hand; the Vue lab was built directly. All Flask,
+re-platformed from the catalog's Node/Rails/Nuxt stacks.
+
+- `jquery-location-hash-selector` (**practitioner**): a help-centre runs `$(location.hash.slice(1))` to
+  "scroll to a section". jQuery's `$()` CONSTRUCTS elements from an HTML-looking string, so `<img onerror>`
+  in the fragment fires. Vendored jQuery 3.4.1 (< 3.5). Cookie theft.
+- `angularjs-sandbox-escape-172` (**expert**): `?name=` is reflected HTML-escaped into an `ng-app` region.
+  Escaping stops `<script>` but not `{{ }}` — AngularJS 1.6+ dropped the expression sandbox, so
+  `{{ constructor.constructor(…)() }}` reaches `Function`. Client-side template injection. Vendored AngularJS
+  1.7.2. Confirmed live: escaping `<script>`→`&lt;script&gt;` while the `{{}}` gadget still fires.
+- `vue2-template-compile-injection` (**expert**): a dashboard runs `Vue.compile()` on a stored user widget
+  template. The template is embedded in a hidden `<div>` (HTML-escaped) and read via **`textContent`** (which
+  decodes entities — a `<script>`/`innerHTML` read would NOT), so the raw template reaches the compiler; a
+  Vue expression reaches `Function` via `constructor.constructor`, fetching the admin-only `/me`. Vendored
+  Vue 2.7.16 full build. (Built by hand; the `textContent`-not-`innerHTML` decoding detail was the key fix.)
+- All Flask, reuse the batch-a shape. Verified clean-room per lab: exploit exit 0 (both invocations), flag ==
+  expected HMAC, posture OK x3, anti-bypass 403s, egress-drop, app 135MB, no baked flag, **Trivy library gate
+  clean (bare vendored \*.min.js is not fingerprinted)**, drift-lint 38, format/typecheck/lint/dockerfile-pin
+  green. SOLUTIONs carry the CWE-79/OWASP-A03 citation. `risk: low`.
 
 ### track-xss-e-sanitizer — three filter/sanitiser/parser-bypass XSS labs (practitioner), workflow-authored
 
