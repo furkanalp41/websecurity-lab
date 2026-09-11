@@ -975,7 +975,7 @@
         "slug": "csp-base-uri-relative-script-hijack",
         "title": "CSP Bypass via Missing base-uri Directive",
         "difficulty": "expert",
-        "description": "The CSP is script-src 'self' (no 'unsafe-inline') but omits the base-uri directive, and the page loads its bundle via a relative <script src=\"main.js\"> below a reflected ?ref= injection in <head>. An injected <base href> repoints the relative script at an attacker-uploaded SAME-ORIGIN path (/u/<id>/main.js), which still satisfies script-src 'self' and runs in the app origin.",
+        "description": "The CSP is script-src 'nonce-<random>' (no 'self', no 'unsafe-inline') but omits the base-uri directive, and the page loads a relative NONCED <script src=\"main.js\"> below a reflected ?ref= injection in <head>. A directly-injected <script src> is blocked (it carries no nonce), but an injected <base href> repoints the page's OWN nonced main.js at an attacker-uploaded same-origin path (/u/<id>/main.js) — the nonce rides the element, so it loads and runs in the app origin.",
         "objective": "Inject a <base href='//attacker.lab'> so that when the admin bot next loads a legitimate page, the relative-path script is fetched from the attacker origin under a URL that satisfies the same policy; hijack script execution and exfiltrate the admin cookie.",
         "flag_hint": "OOB collector receives the cookie; /solve returns the flag on match.",
         "skills_taught": [
@@ -987,7 +987,7 @@
           "Python 3.12",
           "Flask 3.1",
           "gunicorn 23",
-          "CSP script-src 'self' with NO base-uri directive (the flaw)",
+          "CSP script-src 'nonce-...' (no 'self') with NO base-uri directive (the flaw)",
           "same-origin upload path /u/<id>/main.js as the base-uri hijack target",
           "@websec-lab/xss-verifier headless-Chromium bot",
           "stdlib OOB collector"

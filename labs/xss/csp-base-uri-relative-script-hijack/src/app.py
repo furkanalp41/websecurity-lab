@@ -1,16 +1,22 @@
 # SPDX-License-Identifier: MIT
-"""Relaydash — a dashboard whose CSP restricts scripts to `script-src 'self'`
-(no 'unsafe-inline') but OMITS the `base-uri` directive. The dashboard loads its
-bundle with a RELATIVE path, `<script src="main.js">`, and reflects a `?ref=`
-value into <head> unescaped (a single-tag HTML injection) ABOVE that script.
+"""Relaydash — a dashboard whose CSP restricts scripts with a per-response NONCE
+(`script-src 'nonce-<random>'`, no 'self', no 'unsafe-inline') but OMITS the
+`base-uri` directive. The dashboard loads its bundle with a RELATIVE, nonced path,
+`<script src="main.js" nonce="<random>">`, and reflects a `?ref=` value into <head>
+unescaped (a single-tag HTML injection) ABOVE that script.
 
-Because inline script is blocked by the CSP, a reflected `<script>` or
-`<img onerror>` does nothing. But with no `base-uri` restriction, an injected
-`<base href="/u/<id>/">` changes the document base URL, so the relative
-`main.js` resolves to `/u/<id>/main.js` — a SAME-ORIGIN path (so `script-src
-'self'` still permits it) that the attacker controls by uploading a script there.
-The dashboard then executes the attacker's bundle in its own origin, with the
-admin's non-HttpOnly session cookie in scope.
+The nonce is what makes this lab specifically about base-uri. An attacker cannot
+inject their OWN script: an inline `<script>`, an `<img onerror>`, or even a
+`<script src="/u/<id>/main.js">` pointing at same-origin attacker content is all
+BLOCKED, because none of them carry the per-response nonce (and there is no 'self'
+in script-src to fall back on). The only script the CSP trusts is the page's own
+nonced `<script src="main.js">`.
+
+But with no `base-uri` restriction, an injected `<base href="/u/<id>/">` changes
+the document base URL, so that trusted, nonced `main.js` now resolves to
+`/u/<id>/main.js` — attacker-uploaded content. The nonce travels with the ELEMENT,
+not the URL, so the redirected script loads with a valid nonce and executes in the
+dashboard's origin with the admin's non-HttpOnly session cookie in scope.
 
 The admin bot logs in via /internal/bot-login and visits any path queued through
 POST /report.
@@ -20,9 +26,10 @@ import hmac
 import ipaddress
 import json
 import os
+import secrets
 import urllib.request
 
-from flask import Flask, Response, request
+from flask import Flask, Response, g, request
 from jinja2 import Environment
 
 FLAG_PATH = os.environ.get("FLAG_PATH", "/var/lib/lab/flag.txt")
@@ -50,7 +57,7 @@ PAGE = _unsafe_env.from_string(
     """<!doctype html><html><head>
 <title>Relaydash</title>
 {{ ref }}
-<script src="main.js"></script>
+<script src="main.js" nonce="{{ nonce }}"></script>
 </head><body>
 <h1>Relaydash</h1>
 <p>Your relays load below.</p>
@@ -63,13 +70,16 @@ PAGE = _unsafe_env.from_string(
 LEGIT_MAIN_JS = "document.getElementById('app').textContent='No relays configured.';"
 
 
-def _csp() -> str:
-    # No 'unsafe-inline' → inline <script>/onerror in the reflected ref cannot run.
-    # NOTE: no `base-uri` directive — the deliberate hole. Adding `base-uri 'self'`
-    # (or 'none') would neutralise the <base> injection (see SOLUTION).
+def _csp(nonce: str) -> str:
+    # NONCE-based script-src, NO 'self' and NO 'unsafe-inline': inline script,
+    # onerror handlers, AND a directly-injected <script src="/u/<id>/main.js"> are
+    # all blocked — none carry this per-response nonce. The only trusted script is
+    # the page's own nonced <script src="main.js">.
+    # NOTE: no `base-uri` directive — the deliberate hole. Adding `base-uri 'none'`
+    # (or 'self') would neutralise the <base> injection (see SOLUTION).
     return (
         "default-src 'self'; "
-        "script-src 'self'; "
+        "script-src 'nonce-" + nonce + "'; "
         "img-src * data:; "
         "connect-src *; "
         "style-src 'self' 'unsafe-inline'; "
@@ -77,9 +87,15 @@ def _csp() -> str:
     )
 
 
+@app.before_request
+def _gen_nonce() -> None:
+    # Fresh, unguessable per request → an attacker cannot pre-inject a nonced script.
+    g.nonce = secrets.token_urlsafe(16)
+
+
 @app.after_request
 def set_csp(resp: Response) -> Response:
-    resp.headers["Content-Security-Policy"] = _csp()
+    resp.headers["Content-Security-Policy"] = _csp(getattr(g, "nonce", ""))
     return resp
 
 
@@ -98,7 +114,7 @@ def health() -> Response:
 @app.get("/")
 def home() -> Response:
     ref = request.args.get("ref", "")
-    return Response(PAGE.render(ref=ref), mimetype="text/html")
+    return Response(PAGE.render(ref=ref, nonce=g.nonce), mimetype="text/html")
 
 
 @app.get("/main.js")
@@ -119,7 +135,6 @@ def upload() -> Response:
     if not js:
         return Response(json.dumps({"ok": False, "error": "js required"}),
                         mimetype="application/json", status=400)
-    import secrets
     uid = secrets.token_hex(8)
     _uploads[uid] = js
     while len(_uploads) > MAX_UPLOADS:
