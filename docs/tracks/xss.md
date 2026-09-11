@@ -112,6 +112,22 @@ Three ways a partial defence fails. Workflow-authored, serially Docker-verified;
 
 All reuse the batch-a shape; `risk: low`. XSS 10/26 after merge.
 
+### batch/track-xss-i-trust (this batch — postMessage origin validation, practitioner)
+
+A client-side trust-boundary lab. Built by hand, Docker-verified; Flask (look-alike origin
+via docker network aliases instead of the catalog's wildcard DNS + nginx vhost).
+
+- `postmessage-origin-startswith-bypass` (**practitioner**) — a `postMessage` handler trusts
+  the sender via `e.origin.startsWith('http://widget-host')` (prefix, no delimiter) then
+  `innerHTML`s `e.data`. A look-alike origin `widget-host-evil` prefix-matches; a frame there
+  (embedded via the escaped `?widget=`) messages an `<img onerror>` that runs in the
+  authenticated top-level page. Fix: exact-match origins + `textContent`. (Sink lands
+  top-level, not a framed target, because `SameSite=Lax` cookies are absent in cross-site
+  iframes.)
+
+Reuses the batch-a shape; `risk: low`. Negative control (a non-matching origin) → 0 beacons.
+XSS 11/26 after merge (net 18/26 once `track-xss-f`/`-g`/`-h` also land).
+
 ## Scheduled (from `data/catalog.json`)
 
 Reflected (done: 1) → stored → DOM → filter-ladder/sanitiser bypass →

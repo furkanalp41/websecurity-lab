@@ -6,6 +6,28 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### track-xss-i-trust — postMessage origin-validation XSS (practitioner)
+
+A client-side trust-boundary lab: a `window.postMessage` handler that trusts the sender with a PREFIX origin
+check. Built by hand, Docker-verified. Flask (re-platformed from the catalog's wildcard-DNS + nginx-vhost
+setup — the look-alike origin is reproduced with docker network aliases).
+
+- `postmessage-origin-startswith-bypass` (**practitioner**): ChatCo's handler does
+  `if (e.origin.startsWith('http://widget-host')) slot.innerHTML = e.data`. The prefix test has no delimiter,
+  so a look-alike origin `http://widget-host-evil:8080` (a 2nd alias on the widget service) passes. Pointing
+  the page's `?widget=` embed at a frame there (HTML-escaped into the `src` — no attribute-breakout shortcut)
+  `postMessage`s an `<img onerror>` that runs in ChatCo's **authenticated top-level** page and steals the
+  non-HttpOnly session cookie. Teaches: exact-match origins, never `innerHTML` message data.
+- **Sound delivery note:** the catalog's "attacker page frames the target" topology fails under `SameSite=Lax`
+  on HTTP (a cross-site iframe gets no session cookie → `document.cookie` empty). This lab lands the sink in
+  the top-level page the bot navigates to, with the look-alike as the INNER frame. Documented in its SOLUTION.
+- 4 services (app + stdlib widget-origin with aliases `widget-host`/`widget-host-evil` + a `notwidget` alias
+  for the negative control + bot + collector). Verified clean-room: exploit exit 0 (both `--target` and `$1`),
+  flag == expected HMAC, **negative control 0 beacons** (a non-prefix-matching origin is rejected → the check
+  filters), posture OK, anti-bypass 403s, app 142 MB, no baked flag, **Trivy library + OS gates clean**,
+  drift-lint 36, prettier/catalog green. SOLUTION carries the CWE-79/CWE-346/OWASP-A03 citation. `risk: low`.
+  XSS 11/26 on this branch (net 18/26 once `track-xss-f`/`-g`/`-h` also land).
+
 ### track-xss-e-sanitizer — three filter/sanitiser/parser-bypass XSS labs (practitioner), workflow-authored
 
 Three ways a partial defence fails. **Workflow-authored** (3 author agents + 3 adversarial invariant-reviewers,
