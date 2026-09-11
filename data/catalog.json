@@ -952,7 +952,7 @@
         "slug": "csp-jsonp-callback-bypass",
         "title": "CSP Bypass via JSONP Endpoint in Allowlist",
         "difficulty": "expert",
-        "description": "The app enforces script-src 'self' https://accounts.trusted.lab. The trusted host exposes /api/jsonp?callback=... which echoes the callback name into a JS function invocation. A reflected HTML injection exists on the target but 'unsafe-inline' is not permitted; the CSP only allows scripts loaded from allowlisted hosts.",
+        "description": "The app reflects ?q= into the page unescaped but relies on a strict CSP (script-src 'self' plus an allowlisted accounts host, no 'unsafe-inline') to neuter it: inline <script> and onerror handlers do not run. The allowlisted host exposes a JSONP endpoint that echoes the callback name verbatim, so a <script src> pointing there is CSP-permitted and executes attacker JS in the app origin with the admin's non-HttpOnly session cookie.",
         "objective": "Combine the HTML injection with the trusted-host JSONP callback abuse to execute arbitrary JavaScript under the app's CSP and exfiltrate the admin's session cookie to the OOB collector.",
         "flag_hint": "OOB collector receives the cookie; /solve returns the flag on match.",
         "skills_taught": [
@@ -962,18 +962,19 @@
         ],
         "tech_stack": [
           "Python 3.12",
-          "Flask 3.0 target",
-          "Node 20 + Express 4 mock trusted-host on second nginx 1.27 vhost",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Flask 3.1",
+          "gunicorn 23",
+          "stdlib mock trusted-host with a JSONP callback endpoint (the CSP-allowlisted script origin)",
+          "@websec-lab/xss-verifier headless-Chromium bot",
+          "stdlib OOB collector"
         ],
-        "inspired_by": "Michele Spagnuolo / Lukas Weichselbaum 'CSP Is Dead, Long Live CSP' (2016) research and its 2022-2024 replays against GitHub / Salesforce"
+        "inspired_by": "The well-documented CSP script-src allowlist bypass class (Google's CSP-is-dead research on JSONP/AngularJS gadgets on allowlisted hosts), abstracted for local Docker with a Flask target, a mock allowlisted JSONP host, a Playwright admin bot, and an OOB collector"
       },
       {
         "slug": "csp-base-uri-relative-script-hijack",
         "title": "CSP Bypass via Missing base-uri Directive",
         "difficulty": "expert",
-        "description": "The app's CSP restricts script-src to 'self' but omits base-uri. A single-tag HTML injection is available inside <head>. Every legitimate script on the page is loaded via a relative path such as /assets/main.js.",
+        "description": "The CSP is script-src 'nonce-<random>' (no 'self', no 'unsafe-inline') but omits the base-uri directive, and the page loads a relative NONCED <script src=\"main.js\"> below a reflected ?ref= injection in <head>. A directly-injected <script src> is blocked (it carries no nonce), but an injected <base href> repoints the page's OWN nonced main.js at an attacker-uploaded same-origin path (/u/<id>/main.js) — the nonce rides the element, so it loads and runs in the app origin.",
         "objective": "Inject a <base href='//attacker.lab'> so that when the admin bot next loads a legitimate page, the relative-path script is fetched from the attacker origin under a URL that satisfies the same policy; hijack script execution and exfiltrate the admin cookie.",
         "flag_hint": "OOB collector receives the cookie; /solve returns the flag on match.",
         "skills_taught": [
@@ -982,14 +983,15 @@
           "minimising markup injections to a single tag"
         ],
         "tech_stack": [
-          "Ruby 3.3",
-          "Sinatra 4",
-          "relative-path bundle under /assets/*.js",
-          "second attacker origin served by nginx 1.27",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "CSP script-src 'nonce-...' (no 'self') with NO base-uri directive (the flaw)",
+          "same-origin upload path /u/<id>/main.js as the base-uri hijack target",
+          "@websec-lab/xss-verifier headless-Chromium bot",
+          "stdlib OOB collector"
         ],
-        "inspired_by": "PortSwigger research on base-uri and Google Bughunter University CSP allowlist articles"
+        "inspired_by": "The documented base-uri / <base> hijack of relative-path scripts under CSP (Terjanq, Cure53 and the CSP base-uri guidance), abstracted for local Docker with a Flask target that omits base-uri, a same-origin upload path, a Playwright admin bot, and an OOB collector"
       },
       {
         "slug": "angularjs-sandbox-escape-172",

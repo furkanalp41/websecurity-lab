@@ -6,6 +6,36 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### track-xss-h-csp — two CSP-bypass XSS labs (expert): trusted-host JSONP + missing base-uri
+
+Two ways a Content-Security-Policy that correctly blocks inline script is still defeated. Built by hand,
+serially Docker-verified. Both Flask (re-platformed from the catalog's Node/Express + Ruby/Sinatra) — the
+CSP-bypass gadget is framework-independent.
+
+- `csp-jsonp-callback-bypass` (**expert**): the app reflects ?q= raw, but a strict CSP (script-src 'self'
+  http://accounts-trusted:8080, no 'unsafe-inline') blocks inline `<script>`/`onerror`. The allowlisted
+  accounts host exposes `/api/jsonp?callback=` which echoes the callback name verbatim, so a
+  `<script src="…/jsonp?callback=<JS>//">` is CSP-permitted and runs `<JS>` in the app origin — cookie theft.
+  Teaches: a `script-src` host-allowlist is only as safe as the weakest gadget on any allowlisted host
+  (JSONP/AngularJS/user-content); prefer nonces. 4 services (app + stdlib mock trusted-host + bot + collector).
+  (Encoding gotcha fixed during build: the callback's `+` operator must travel as `%2B`, else the JSONP host's
+  `parse_qs` decodes a literal `+` to a space and the echoed JS is a syntax error.)
+- `csp-base-uri-relative-script-hijack` (**expert**): CSP is `script-src 'self'` (no 'unsafe-inline') but OMITS
+  `base-uri`; the page loads a relative `<script src="main.js">` below a reflected `?ref=` `<head>` injection.
+  Uploading a bundle (served same-origin at `/u/<id>/main.js`) then injecting `<base href="/u/<id>/">` repoints
+  the relative script at the attacker's SAME-ORIGIN upload — still 'self', so it runs. Teaches: `script-src`
+  governs where scripts load; `base-uri` governs relative resolution — omit it and a `<base>` hijacks the
+  bundle. Self-contained (no 2nd origin). Fix: `base-uri 'none'` + SRI.
+- **Sound re-platform note:** the catalog's base-uri lab pointed `<base>` at a _foreign_ origin, which
+  `script-src 'self'` would actually BLOCK; this lab keeps the redirected script same-origin (the correct
+  variant of the attack). Documented in its SOLUTION.
+- Both reflected (queue delivery), reuse the batch-a shape; egress-drop backend on the fixed subnet;
+  `/internal/*` firewalled by source-IP + BOT_KEY. Verified clean-room per lab: exploit exit 0 (both `--target`
+  and `$1`), flag == expected HMAC, **negative control 0 beacons** (CSP blocks the naive inline payloads),
+  posture OK, anti-bypass 403s, app 142 MB both, no baked flag, **Trivy library + OS gates clean**, drift-lint
+  37, prettier/catalog green. SOLUTIONs carry the CWE-79/CWE-829/OWASP-A03 citation. `risk: low`. XSS 17/26 on
+  main after this merge (`track-xss-f` + `track-xss-g` landed first).
+
 ### track-xss-g-interactive — two interaction-gated XSS labs (practitioner) + shared-bot click capability
 
 The two XSS variants whose sink fires only on a **victim click**, plus the shared verifier-bot change that makes

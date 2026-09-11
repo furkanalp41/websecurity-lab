@@ -147,6 +147,27 @@ Node/Express, Node/NestJS — the sink is framework-independent).
 
 Both reuse the batch-a shape; `risk: low`. XSS 15/26 after merge (`track-xss-f-framework` landed first).
 
+### batch/track-xss-h-csp (this batch — CSP bypasses, expert)
+
+Two ways a CSP that correctly blocks inline script is still defeated. Built by hand,
+serially Docker-verified; both Flask (re-platformed Node/Express + Ruby/Sinatra — the
+CSP-bypass gadget is framework-independent).
+
+- `csp-jsonp-callback-bypass` (**expert**) — `script-src 'self' <accounts-host>` blocks inline
+  script, but the allowlisted host has a JSONP endpoint that echoes the callback verbatim;
+  `<script src="…/jsonp?callback=<JS>//">` is allowlisted, so `<JS>` runs. A host-allowlist is only
+  as safe as the weakest gadget on it; prefer nonces. (app + stdlib mock trusted-host + bot + collector.)
+- `csp-base-uri-relative-script-hijack` (**expert**) — `script-src 'nonce-…'` (no `'self'`) but no
+  `base-uri`; the page loads a relative NONCED `<script src="main.js">`. A direct `<script src>` is
+  blocked (no nonce), but injecting `<base href="/u/<id>/">` repoints the page's OWN nonced script at an
+  attacker-uploaded same-origin path — the nonce rides the element, so it runs. `script-src` governs which
+  scripts run; `base-uri` governs relative resolution. Fix: `base-uri 'none'` + SRI. (The nonce is what makes
+  base-uri necessary; under `'self'` a direct injection would be a simpler unintended solve.)
+
+Both reflected (queue delivery), reuse the batch-a shape; `risk: low`. Negative controls (naive inline AND a
+direct `<script src>`) → 0 beacons; only the intended CSP gadget executes. XSS 17/26 after merge
+(`track-xss-f` + `track-xss-g` landed first).
+
 ## Scheduled (from `data/catalog.json`)
 
 Reflected (done: 1) → stored → DOM → filter-ladder/sanitiser bypass →
