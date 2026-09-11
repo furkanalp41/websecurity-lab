@@ -53,6 +53,11 @@ services:
       app:
         condition: service_started
     entrypoint: ['python', '/opt/app/widget.py']
+    environment:
+      # Reached as this exact Host (the legit origin), the frame sends only a fixed
+      # safe message and never reflects ?msg= — so it cannot carry an attacker
+      # payload even though it passes ChatCo's origin check.
+      LEGIT_WIDGET_HOST: widget-host:8080
     read_only: true
     tmpfs:
       - /tmp:size=8m,mode=1777

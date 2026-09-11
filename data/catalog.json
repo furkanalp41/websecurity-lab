@@ -748,7 +748,7 @@
         "slug": "postmessage-origin-startswith-bypass",
         "title": "postMessage XSS via startsWith Origin Check",
         "difficulty": "practitioner",
-        "description": "ChatCo embeds a chat widget in an iframe and its postMessage handler trusts the sender with a PREFIX origin check (e.origin.startsWith('http://widget-host')), then writes e.data via innerHTML. A look-alike origin (widget-host-evil, resolved via a docker network alias) prefix-matches, so a frame there postMessages an <img onerror> that runs in ChatCo's authenticated TOP-LEVEL page. The ?widget= embed point is HTML-escaped into the iframe src, so the flawed origin check is the only way in.",
+        "description": "ChatCo embeds a chat widget in an iframe and its postMessage handler trusts the sender with a PREFIX origin check (e.origin.startsWith('http://widget-host')), then writes e.data via innerHTML. The legit widget-host sends only fixed safe content, so an attacker payload requires a LOOK-ALIKE origin (widget-host-evil, a docker network alias) that BOTH reflects the attacker msg AND prefix-matches; its frame postMessages an <img onerror> that runs in ChatCo's authenticated TOP-LEVEL page. ?widget= is HTML-escaped into the iframe src, so the flawed origin check is the only way in.",
         "objective": "Register a look-alike host under the lab's wildcard DNS, host a page that embeds the target and postMessages an HTML payload; when the admin bot visits your attacker URL, exfiltrate document.cookie to the OOB collector.",
         "flag_hint": "OOB collector receives cookie; /solve returns the flag on match.",
         "skills_taught": [
@@ -761,7 +761,7 @@
           "Python 3.12",
           "Flask 3.1",
           "gunicorn 23",
-          "stdlib chat-widget origin (two aliases: legit widget-host + look-alike widget-host-evil) as the postMessage sender",
+          "stdlib chat-widget origin, Host-branched (legit widget-host sends fixed safe content; look-alike widget-host-evil reflects msg) as the postMessage sender",
           "@websec-lab/xss-verifier headless-Chromium bot",
           "stdlib OOB collector"
         ],

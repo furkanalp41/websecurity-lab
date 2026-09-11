@@ -11,6 +11,7 @@
     "Treat a window.postMessage handler as a trust boundary: event.data is attacker-controllable and event.origin is the only thing telling you who sent it",
     "Recognise the classic origin-check flaw: e.origin.startsWith('https://trusted') (or indexOf===0) has no delimiter, so a look-alike host such as trusted.evil.example passes",
     "Exploit a cross-window message: a page on a prefix-matching origin postMessages HTML that the handler writes via innerHTML, running script in the victim's authenticated document",
+    "See why the prefix flaw is load-bearing: the LEGIT widget origin (which trivially prefix-matches) sends only fixed safe content, so an attacker payload requires an origin that BOTH reflects it AND passes the check — only a look-alike does both",
     "Understand why the sink must land in the top-level authenticated page (not a cross-site iframe) — a SameSite=Lax cookie is absent in a cross-site frame, so document.cookie there would be empty",
     "Apply the fix: compare e.origin for EXACT equality against an allowlist, and never write message data with innerHTML (use textContent / a strict schema)"
   ],
@@ -22,7 +23,7 @@
     "Python 3.12",
     "Flask 3.1",
     "gunicorn 23",
-    "stdlib chat-widget origin (two aliases: legit widget-host + look-alike widget-host-evil) as the postMessage sender",
+    "stdlib chat-widget origin, Host-branched (legit widget-host sends fixed safe content; look-alike widget-host-evil reflects msg) as the postMessage sender",
     "@websec-lab/xss-verifier headless-Chromium bot",
     "stdlib OOB collector"
   ],

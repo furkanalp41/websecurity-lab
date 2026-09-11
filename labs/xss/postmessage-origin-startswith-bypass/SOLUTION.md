@@ -64,13 +64,38 @@ is the admin `session`, and the beacon carries it out.
 > ChatCo page (bot navigates to it directly; the look-alike is the _inner_ frame)
 > keeps the cookie in scope. The lab's delivery reflects that.
 
-## Verification integrity — the negative control
+## Why the look-alike is necessary (not the legit widget)
 
-`tests/exploit.py` first points `?widget=` at `http://notwidget:8080/frame` (a third
-alias that does **not** prefix-match) and confirms the collector receives **zero**
-beacons — proving the origin check genuinely filters and the bypass is specifically
-the prefix flaw, not an absent check. Then it runs the look-alike origin and
-succeeds.
+`?widget=` accepts any origin — so why not just point it at the **legit**
+`http://widget-host:8080/frame?msg=<img …>`, which trivially prefix-matches? Because
+the **legit widget origin sends only a fixed, safe message and ignores `?msg=`**. A
+message from `widget-host` passes the origin check but carries no attacker payload.
+So a working attack needs a frame that does **both**: reflects an attacker-controlled
+`msg` **and** passes the origin check. Only the look-alike does both:
+
+| Frame origin                    | Reflects your `msg`? | Passes `startsWith('http://widget-host')`? | Result        |
+| ------------------------------- | -------------------- | ------------------------------------------ | ------------- |
+| `widget-host` (legit)           | no — fixed safe text | yes                                        | **0 beacons** |
+| `notwidget`                     | yes                  | no                                         | **0 beacons** |
+| `widget-host-evil` (look-alike) | yes                  | yes                                        | **executes**  |
+
+That is precisely what makes the prefix flaw load-bearing — take it away (fix the
+origin check to exact-match) and there is no frame that both carries a payload and
+is accepted.
+
+## Verification integrity — the negative controls
+
+`tests/exploit.py` runs **both** controls before the exploit and fails if either
+beacons:
+
+- `http://notwidget:8080/frame` — a non-prefix-matching origin. It reflects the
+  payload but the origin check **rejects** it → 0 beacons (the check genuinely
+  filters; the bypass is specifically the prefix flaw, not an absent check).
+- `http://widget-host:8080/frame` — the **legit** origin. It passes the origin check
+  but sends fixed safe content → 0 beacons (the legit origin cannot be weaponised, so
+  the look-alike is required).
+
+Only then does it run `widget-host-evil` (reflects + prefix-matches) and succeed.
 
 ## End-to-end
 
