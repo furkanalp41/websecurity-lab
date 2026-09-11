@@ -33,8 +33,65 @@ CSP-bypass gadget is framework-independent.
   `/internal/*` firewalled by source-IP + BOT_KEY. Verified clean-room per lab: exploit exit 0 (both `--target`
   and `$1`), flag == expected HMAC, **negative control 0 beacons** (CSP blocks the naive inline payloads),
   posture OK, anti-bypass 403s, app 142 MB both, no baked flag, **Trivy library + OS gates clean**, drift-lint
-  37, prettier/catalog green. SOLUTIONs carry the CWE-79/CWE-829/OWASP-A03 citation. `risk: low`. XSS 12/26 on
-  this branch (net 17/26 once the parallel `track-xss-f` and `track-xss-g` PRs also land).
+  37, prettier/catalog green. SOLUTIONs carry the CWE-79/CWE-829/OWASP-A03 citation. `risk: low`. XSS 17/26 on
+  main after this merge (`track-xss-f` + `track-xss-g` landed first).
+
+### track-xss-g-interactive — two interaction-gated XSS labs (practitioner) + shared-bot click capability
+
+The two XSS variants whose sink fires only on a **victim click**, plus the shared verifier-bot change that makes
+them verifiable. Built by hand and serially Docker-verified. Re-platformed to Flask (the catalog named
+Node/Express and Node/NestJS) — the sink is framework-independent.
+
+- **`packages/xss-verifier` — click capability.** Added an optional `XSSBOT_CLICK_SELECTOR` env: after the page
+  settles, the bot clicks the first element matching that CSS selector via in-page `el.click()` (so it activates
+  `javascript:` links and submits `formaction` buttons without Playwright's auto-wait-for-navigation).
+  Backward-compatible (unset = the prior load-only behaviour); one new dataclass field + one env row + docstring.
+  README gains the env row and an "image naming convention (infra vs lab app)" note.
+- `markdown-renderer-javascript-uri-bypass` (**practitioner**): a wiki renders `[text](url)` into `<a href>` and
+  "sanitises" the href with a single-pass `re.sub(r"javascript:", "", url, flags=I)`. A literal TAB in the scheme
+  (`java<TAB>script:`) is not the substring `javascript:` (survives the strip) but the browser normalises it back
+  to `javascript:` on navigation. The admin bot reviews new pages and **clicks** the primary link
+  (`XSSBOT_CLICK_SELECTOR=a.wiki-link`), so the tab-smuggled URI runs and steals the non-HttpOnly `session`
+  cookie. Teaches href-context `javascript:` sinks, single-pass-strip failure modes, and scheme allow-listing as
+  the fix. Negative control (plain `javascript:`, no tab) → stripped to an inert relative href, **0 beacons**.
+- `formaction-xss-button-injection` (**practitioner**): a CMS renders a contributor draft **inside** the editor's
+  approve form (which carries an anti-CSRF token and has no `action`). The draft is allow-list sanitised with
+  **nh3** — scripts, event handlers and `javascript:` URIs (including a `javascript:` formaction) are all
+  stripped — but a CTA `<button>` may keep `formaction`/`formmethod`. The editor bot reviews the draft and
+  **clicks** the CTA (`XSSBOT_CLICK_SELECTOR=.draft button`); the formaction override submits the approve form
+  (CSRF token and all) to the collector. **Zero JavaScript** — a scriptless exfil, so `HttpOnly` (set here) and a
+  `script-src` CSP are irrelevant; `form-action` CSP is the matching defence. Negative control
+  (`<script>`+`<img onerror>`) → stripped by nh3, **0 beacons**.
+- Both reuse the batch-a shape (app/bot/collector, edge + `internal:true` backend on the fixed subnet,
+  `/internal/*` + admin routes firewalled by source-IP/cookie + BOT_KEY). Verified clean-room per lab: exploit
+  exit 0 (both `--target` and `$1`), flag == expected HMAC, **negative control 0 beacons**, posture OK ×3,
+  anti-bypass 403s, egress-drop, app 142–144 MB, no baked flag, **Trivy library + OS gates clean (both, incl.
+  nh3 0.2.20)**, drift-lint 37, prettier/format/catalog green. SOLUTIONs carry the CWE-79/OWASP-A03 citation.
+  `risk: low`. XSS 15/26 on main after this merge (`track-xss-f-framework` landed first, PR #20).
+
+### track-xss-f-framework — three client-side framework template/selector-injection labs
+
+Framework-specific client-side sinks. Each vendors its **intentionally end-of-life** framework locally
+(egress-drop = no CDN) because that vulnerable version IS the lesson. Two were authored by the (repeatedly
+process-orphaned) Workflow and finished/verified by hand; the Vue lab was built directly. All Flask,
+re-platformed from the catalog's Node/Rails/Nuxt stacks.
+
+- `jquery-location-hash-selector` (**practitioner**): a help-centre runs `$(location.hash.slice(1))` to
+  "scroll to a section". jQuery's `$()` CONSTRUCTS elements from an HTML-looking string, so `<img onerror>`
+  in the fragment fires. Vendored jQuery 3.4.1 (< 3.5). Cookie theft.
+- `angularjs-sandbox-escape-172` (**expert**): `?name=` is reflected HTML-escaped into an `ng-app` region.
+  Escaping stops `<script>` but not `{{ }}` — AngularJS 1.6+ dropped the expression sandbox, so
+  `{{ constructor.constructor(…)() }}` reaches `Function`. Client-side template injection. Vendored AngularJS
+  1.7.2. Confirmed live: escaping `<script>`→`&lt;script&gt;` while the `{{}}` gadget still fires.
+- `vue2-template-compile-injection` (**expert**): a dashboard runs `Vue.compile()` on a stored user widget
+  template. The template is embedded in a hidden `<div>` (HTML-escaped) and read via **`textContent`** (which
+  decodes entities — a `<script>`/`innerHTML` read would NOT), so the raw template reaches the compiler; a
+  Vue expression reaches `Function` via `constructor.constructor`, fetching the admin-only `/me`. Vendored
+  Vue 2.7.16 full build. (Built by hand; the `textContent`-not-`innerHTML` decoding detail was the key fix.)
+- All Flask, reuse the batch-a shape. Verified clean-room per lab: exploit exit 0 (both invocations), flag ==
+  expected HMAC, posture OK x3, anti-bypass 403s, egress-drop, app 135MB, no baked flag, **Trivy library gate
+  clean (bare vendored \*.min.js is not fingerprinted)**, drift-lint 38, format/typecheck/lint/dockerfile-pin
+  green. SOLUTIONs carry the CWE-79/OWASP-A03 citation. `risk: low`.
 
 ### track-xss-e-sanitizer — three filter/sanitiser/parser-bypass XSS labs (practitioner), workflow-authored
 

@@ -112,6 +112,41 @@ Three ways a partial defence fails. Workflow-authored, serially Docker-verified;
 
 All reuse the batch-a shape; `risk: low`. XSS 10/26 after merge.
 
+### batch/track-xss-f-framework (this batch — framework template/selector injection)
+
+Client-side framework sinks; each vendors its EOL framework locally (that version is the vuln). All Flask.
+
+- `jquery-location-hash-selector` (**practitioner**) — `$(location.hash.slice(1))`; jQuery `$()` constructs
+  an `<img onerror>` from the fragment (jQuery 3.4.1).
+- `angularjs-sandbox-escape-172` (**expert**) — `?name=` reflected HTML-escaped into `ng-app`; escaping
+  doesn't stop `{{ constructor.constructor(…)() }}` (AngularJS 1.7.2, sandbox-less). CSTI.
+- `vue2-template-compile-injection` (**expert**) — `Vue.compile()` of a stored widget template (read from a
+  hidden div via `textContent`, which decodes) → expression reaches `Function`, fetches `/me` (Vue 2.7.16).
+
+All reuse the batch-a shape; `risk: low`. XSS 13/26 after merge.
+
+### batch/track-xss-g-interactive (this batch — interaction-gated sinks, practitioner)
+
+Two labs whose sink fires only when the **victim clicks**, plus the shared-bot change that
+makes them verifiable. Built by hand, serially Docker-verified; both Flask (re-platformed
+Node/Express, Node/NestJS — the sink is framework-independent).
+
+- **`packages/xss-verifier` — click capability.** New optional `XSSBOT_CLICK_SELECTOR` env:
+  after the page settles the bot clicks the first element matching that CSS selector via
+  in-page `el.click()`, activating `javascript:` links / submitting `formaction` buttons.
+  Backward-compatible (unset = the prior load-only behaviour).
+- `markdown-renderer-javascript-uri-bypass` (**practitioner**) — a wiki strips `javascript:`
+  from link hrefs with a single-pass regex; `java<TAB>script:` survives the strip but the
+  browser normalises the tab away on navigation, so the href runs when the admin bot clicks
+  the review link (`a.wiki-link`). Cookie theft. The fix is scheme allow-listing.
+- `formaction-xss-button-injection` (**practitioner**) — an nh3 allow-list correctly strips
+  scripts/handlers/`javascript:` but permits `<button formaction>`. Rendered inside the
+  editor's CSRF-token-bearing approve form and clicked by the bot (`.draft button`), the
+  formaction override submits that form to the collector. **Scriptless** CSRF-token exfil;
+  `form-action` CSP is the matching defence.
+
+Both reuse the batch-a shape; `risk: low`. XSS 15/26 after merge (`track-xss-f-framework` landed first).
+
 ### batch/track-xss-h-csp (this batch — CSP bypasses, expert)
 
 Two ways a CSP that correctly blocks inline script is still defeated. Built by hand,
@@ -122,15 +157,16 @@ CSP-bypass gadget is framework-independent).
   script, but the allowlisted host has a JSONP endpoint that echoes the callback verbatim;
   `<script src="…/jsonp?callback=<JS>//">` is allowlisted, so `<JS>` runs. A host-allowlist is only
   as safe as the weakest gadget on it; prefer nonces. (app + stdlib mock trusted-host + bot + collector.)
-- `csp-base-uri-relative-script-hijack` (**expert**) — `script-src 'self'` but no `base-uri`; the page
-  loads a relative `<script src="main.js">`. Injecting `<base href="/u/<id>/">` repoints it at an
-  attacker-uploaded same-origin path (still 'self'), which runs. `script-src` governs where scripts load;
-  `base-uri` governs relative resolution. Fix: `base-uri 'none'` + SRI. (The catalog's foreign-origin
-  framing is unsound under 'self'; this lab keeps the redirected script same-origin — the correct variant.)
+- `csp-base-uri-relative-script-hijack` (**expert**) — `script-src 'nonce-…'` (no `'self'`) but no
+  `base-uri`; the page loads a relative NONCED `<script src="main.js">`. A direct `<script src>` is
+  blocked (no nonce), but injecting `<base href="/u/<id>/">` repoints the page's OWN nonced script at an
+  attacker-uploaded same-origin path — the nonce rides the element, so it runs. `script-src` governs which
+  scripts run; `base-uri` governs relative resolution. Fix: `base-uri 'none'` + SRI. (The nonce is what makes
+  base-uri necessary; under `'self'` a direct injection would be a simpler unintended solve.)
 
-Both reflected (queue delivery), reuse the batch-a shape; `risk: low`. Negative control (naive inline
-payloads) → 0 beacons; only the CSP gadget executes. XSS 12/26 after merge (net 17/26 once
-`track-xss-f-framework` and `track-xss-g-interactive` also land).
+Both reflected (queue delivery), reuse the batch-a shape; `risk: low`. Negative controls (naive inline AND a
+direct `<script src>`) → 0 beacons; only the intended CSP gadget executes. XSS 17/26 after merge
+(`track-xss-f` + `track-xss-g` landed first).
 
 ## Scheduled (from `data/catalog.json`)
 

