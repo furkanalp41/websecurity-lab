@@ -1,0 +1,46 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "csp-jsonp-callback-bypass",
+  "title": "CSP Bypass via JSONP Endpoint in Allowlist",
+  "track": "xss",
+  "difficulty": "expert",
+  "estimated_minutes": 45,
+  "max_lifetime_minutes": 60,
+  "learning_objectives": [
+    "Read a Content-Security-Policy and reason about what it does and does NOT stop: a strict script-src (no 'unsafe-inline') blocks reflected inline <script> and inline event handlers, so an HTML injection alone does not execute",
+    "Recognise that a CSP script-src allowlist is only as safe as every host on it: a single allowlisted origin that exposes a JSONP (or other reflected-JS) endpoint hands back arbitrary script execution",
+    "Chain an HTML injection with a trusted-host JSONP callback: a <script src> pointing at the allowlisted host satisfies the CSP, and the callback parameter carries the attacker's code",
+    "Understand why CSP is defence-in-depth, not a substitute for output encoding — and how to audit an allowlist (drop hosts with JSONP/AngularJS/user-content, prefer nonces/hashes over host allowlists)",
+    "Exfiltrate a same-origin secret (the admin's non-HttpOnly session cookie) once script runs in the protected origin"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-79", "CWE-829"],
+  "prerequisites": ["reflected-xss-script-tag-filtered-ladder"],
+  "flag_hint": "The reflected ?q= injection cannot run inline script (CSP has no 'unsafe-inline'), but script-src allowlists http://accounts-trusted:8080, which has /api/jsonp?callback=. Reflect <script src=\"http://accounts-trusted:8080/api/jsonp?callback=<your JS>//\"></script>; the CSP permits the source and the JSONP echoes your JS into execution in the app origin. Steal document.cookie to the collector, read /oob/received, POST /solve {\"c\":\"<32 hex>\"}.",
+  "tech_stack": [
+    "Python 3.12",
+    "Flask 3.1",
+    "gunicorn 23",
+    "stdlib mock trusted-host with a JSONP callback endpoint (the CSP-allowlisted script origin)",
+    "@websec-lab/xss-verifier headless-Chromium bot",
+    "stdlib OOB collector"
+  ],
+  "tags": [
+    "xss",
+    "csp",
+    "csp-bypass",
+    "jsonp",
+    "script-src-allowlist",
+    "reflected",
+    "html-injection",
+    "cookie-theft",
+    "oob-exfil",
+    "victim-bot",
+    "cwe-79"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "The well-documented CSP script-src allowlist bypass class (Google's CSP-is-dead research on JSONP/AngularJS gadgets on allowlisted hosts), abstracted for local Docker with a Flask target, a mock allowlisted JSONP host, a Playwright admin bot, and an OOB collector"
+}

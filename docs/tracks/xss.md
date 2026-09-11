@@ -112,6 +112,26 @@ Three ways a partial defence fails. Workflow-authored, serially Docker-verified;
 
 All reuse the batch-a shape; `risk: low`. XSS 10/26 after merge.
 
+### batch/track-xss-h-csp (this batch — CSP bypasses, expert)
+
+Two ways a CSP that correctly blocks inline script is still defeated. Built by hand,
+serially Docker-verified; both Flask (re-platformed Node/Express + Ruby/Sinatra — the
+CSP-bypass gadget is framework-independent).
+
+- `csp-jsonp-callback-bypass` (**expert**) — `script-src 'self' <accounts-host>` blocks inline
+  script, but the allowlisted host has a JSONP endpoint that echoes the callback verbatim;
+  `<script src="…/jsonp?callback=<JS>//">` is allowlisted, so `<JS>` runs. A host-allowlist is only
+  as safe as the weakest gadget on it; prefer nonces. (app + stdlib mock trusted-host + bot + collector.)
+- `csp-base-uri-relative-script-hijack` (**expert**) — `script-src 'self'` but no `base-uri`; the page
+  loads a relative `<script src="main.js">`. Injecting `<base href="/u/<id>/">` repoints it at an
+  attacker-uploaded same-origin path (still 'self'), which runs. `script-src` governs where scripts load;
+  `base-uri` governs relative resolution. Fix: `base-uri 'none'` + SRI. (The catalog's foreign-origin
+  framing is unsound under 'self'; this lab keeps the redirected script same-origin — the correct variant.)
+
+Both reflected (queue delivery), reuse the batch-a shape; `risk: low`. Negative control (naive inline
+payloads) → 0 beacons; only the CSP gadget executes. XSS 12/26 after merge (net 17/26 once
+`track-xss-f-framework` and `track-xss-g-interactive` also land).
+
 ## Scheduled (from `data/catalog.json`)
 
 Reflected (done: 1) → stored → DOM → filter-ladder/sanitiser bypass →

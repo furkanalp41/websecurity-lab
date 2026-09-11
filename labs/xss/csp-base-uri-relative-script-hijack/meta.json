@@ -1,0 +1,47 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "csp-base-uri-relative-script-hijack",
+  "title": "CSP Bypass via Missing base-uri Directive",
+  "track": "xss",
+  "difficulty": "expert",
+  "estimated_minutes": 45,
+  "max_lifetime_minutes": 60,
+  "learning_objectives": [
+    "Understand that a CSP script-src allowlist governs WHERE scripts load from, while the base-uri directive governs how RELATIVE script URLs resolve — omitting base-uri leaves a hole even under a tight script-src 'self'",
+    "Exploit a <base href> injection: changing the document base URL repoints every relative resource, including <script src=\"main.js\">, at a location the attacker controls",
+    "Keep the redirected script SAME-ORIGIN so it still satisfies script-src 'self' — a user-content path on your own origin (uploads, a JSONP echo, a cache) is enough; you do not need a foreign host",
+    "Recognise that ordinary same-origin user content becomes script execution the moment a relative <script src> can be repointed at it via base-uri",
+    "Apply the fix: always set base-uri 'none' (or 'self') alongside a script-src allowlist, and prefer absolute paths / SRI for first-party bundles"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-79", "CWE-829"],
+  "prerequisites": ["csp-jsonp-callback-bypass"],
+  "flag_hint": "The CSP is script-src 'self' with NO base-uri, and the page loads a RELATIVE <script src=\"main.js\"> below a reflected ?ref= injection in <head>. Upload your JS (POST /upload -> served same-origin at /u/<id>/main.js), then queue /?ref=<base href=\"/u/<id>/\"> — the injected base makes main.js resolve to your same-origin upload (still 'self'), which runs and can read document.cookie. Beacon it, read /oob/received, POST /solve {\"c\":\"<32 hex>\"}.",
+  "tech_stack": [
+    "Python 3.12",
+    "Flask 3.1",
+    "gunicorn 23",
+    "CSP script-src 'self' with NO base-uri directive (the flaw)",
+    "same-origin upload path /u/<id>/main.js as the base-uri hijack target",
+    "@websec-lab/xss-verifier headless-Chromium bot",
+    "stdlib OOB collector"
+  ],
+  "tags": [
+    "xss",
+    "csp",
+    "csp-bypass",
+    "base-uri",
+    "base-tag-injection",
+    "relative-script-hijack",
+    "reflected",
+    "cookie-theft",
+    "oob-exfil",
+    "victim-bot",
+    "cwe-79"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "The documented base-uri / <base> hijack of relative-path scripts under CSP (Terjanq, Cure53 and the CSP base-uri guidance), abstracted for local Docker with a Flask target that omits base-uri, a same-origin upload path, a Playwright admin bot, and an OOB collector"
+}
