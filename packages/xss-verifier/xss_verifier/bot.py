@@ -50,6 +50,7 @@ class Bot:
     nav_timeout: float = 8.0
     settle_ms: int = 1200
     heartbeat_path: str | None = "/tmp/xssbot.alive"
+    click_selector: str | None = None
     chromium_args: list[str] = field(default_factory=lambda: list(DEFAULT_CHROMIUM_ARGS))
 
     def __post_init__(self) -> None:
@@ -83,6 +84,15 @@ class Bot:
             page.goto(self._abs(target), wait_until="load", timeout=self.nav_timeout * 1000)
             # Let async payloads (Image().src, fetch, setTimeout(0)) fire.
             page.wait_for_timeout(self.settle_ms)
+            if self.click_selector:
+                # Some labs need the victim to interact — click a javascript: link,
+                # submit a formaction button. el.click() in-page activates the
+                # element without Playwright's auto-wait-for-navigation.
+                try:
+                    page.eval_on_selector(self.click_selector, "el => el.click()")
+                    page.wait_for_timeout(self.settle_ms)
+                except Exception:  # noqa: BLE001 — no match / broken payload is fine
+                    pass
         except Exception:  # noqa: BLE001 — a broken payload must not kill the bot
             pass
         finally:

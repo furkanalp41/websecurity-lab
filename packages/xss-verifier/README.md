@@ -28,19 +28,20 @@ network, so disabling the in-browser sandbox does not widen the attack surface.
 
 ## Env contract
 
-| var                   | meaning                                                             |
-| --------------------- | ------------------------------------------------------------------- |
-| `XSSBOT_ORIGIN`       | **required** base origin the bot treats as home (`http://app:8080`) |
-| `XSSBOT_LOGIN_URL`    | path/URL navigated each loop to (re)establish the victim session    |
-| `XSSBOT_QUEUE_URL`    | JSON endpoint returning `{"urls":[...]}` of pending targets         |
-| `XSSBOT_FIXED_URL`    | single target visited every loop (alternative to a queue)           |
-| `XSSBOT_COOKIES`      | JSON list of cookie dicts to preload (`name`,`value`[,`url`])       |
-| `XSSBOT_LOCALSTORAGE` | JSON object preloaded into `localStorage` for the origin            |
-| `XSSBOT_INTERVAL`     | seconds between loops (default `2.0`)                               |
-| `XSSBOT_NAV_TIMEOUT`  | per-navigation timeout, seconds (default `8.0`)                     |
-| `XSSBOT_SETTLE_MS`    | ms to linger after load so async payloads fire (default `1200`)     |
-| `XSSBOT_ONCE`         | run a single loop and exit (tests)                                  |
-| `XSSBOT_MAX_LOOPS`    | stop after N loops (unset = forever)                                |
+| var                     | meaning                                                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `XSSBOT_ORIGIN`         | **required** base origin the bot treats as home (`http://app:8080`)                                                               |
+| `XSSBOT_LOGIN_URL`      | path/URL navigated each loop to (re)establish the victim session                                                                  |
+| `XSSBOT_QUEUE_URL`      | JSON endpoint returning `{"urls":[...]}` of pending targets                                                                       |
+| `XSSBOT_FIXED_URL`      | single target visited every loop (alternative to a queue)                                                                         |
+| `XSSBOT_COOKIES`        | JSON list of cookie dicts to preload (`name`,`value`[,`url`])                                                                     |
+| `XSSBOT_LOCALSTORAGE`   | JSON object preloaded into `localStorage` for the origin                                                                          |
+| `XSSBOT_INTERVAL`       | seconds between loops (default `2.0`)                                                                                             |
+| `XSSBOT_NAV_TIMEOUT`    | per-navigation timeout, seconds (default `8.0`)                                                                                   |
+| `XSSBOT_SETTLE_MS`      | ms to linger after load so async payloads fire (default `1200`)                                                                   |
+| `XSSBOT_CLICK_SELECTOR` | after settling, click the first element matching this CSS selector — activates `javascript:` links / submits `formaction` buttons |
+| `XSSBOT_ONCE`           | run a single loop and exit (tests)                                                                                                |
+| `XSSBOT_MAX_LOOPS`      | stop after N loops (unset = forever)                                                                                              |
 
 ## Usage in a lab `docker-compose.yml`
 
@@ -82,3 +83,15 @@ Bot(
     interval=2.0,
 ).run(once=True)  # one loop, then return — handy in unit tests
 ```
+
+## Image naming convention (infra vs lab app)
+
+XSS labs build **two** images. The vulnerable Flask app is tagged
+`websec-lab/<slug>` — the CI **size gate** (`< 300 MB`) and **Trivy scan** target
+the first `websec-lab/*` image, so that is the lab's own attack surface. This bot
+is tagged `xssbot/<slug>` (a **non-`websec-lab/`** prefix) because a headless
+browser is _infrastructure_, like a pulled database engine — large, not the lab's
+code, and therefore intentionally exempt from the size/Trivy gates. It is still
+**posture-gated** (non-root, `read_only`, `cap_drop: ALL`, `no-new-privileges`)
+like every container. Any future large infra image a lab pulls/builds should use a
+non-`websec-lab/` prefix for the same reason.

@@ -14,6 +14,8 @@ no per-lab bot code is needed. Required: XSSBOT_ORIGIN. Everything else optional
   XSSBOT_INTERVAL      seconds between loops (default 2.0)
   XSSBOT_NAV_TIMEOUT   per-navigation timeout seconds (default 8.0)
   XSSBOT_SETTLE_MS     ms to linger after load so async payloads fire (default 1200)
+  XSSBOT_CLICK_SELECTOR after settling, click the first element matching this CSS
+                       selector (activates javascript: links / submits formaction buttons)
   XSSBOT_ONCE          if set, run a single loop and exit (used by tests)
   XSSBOT_MAX_LOOPS     stop after N loops (unset = forever)
 """
@@ -53,6 +55,7 @@ def main() -> int:
         interval=float(os.environ.get("XSSBOT_INTERVAL", "2.0")),
         nav_timeout=float(os.environ.get("XSSBOT_NAV_TIMEOUT", "8.0")),
         settle_ms=int(os.environ.get("XSSBOT_SETTLE_MS", "1200")),
+        click_selector=os.environ.get("XSSBOT_CLICK_SELECTOR") or None,
     )
     max_loops = os.environ.get("XSSBOT_MAX_LOOPS")
     bot.run(

