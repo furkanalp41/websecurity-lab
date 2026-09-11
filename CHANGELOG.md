@@ -6,6 +6,39 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### track-xss-g-interactive — two interaction-gated XSS labs (practitioner) + shared-bot click capability
+
+The two XSS variants whose sink fires only on a **victim click**, plus the shared verifier-bot change that makes
+them verifiable. Built by hand and serially Docker-verified. Re-platformed to Flask (the catalog named
+Node/Express and Node/NestJS) — the sink is framework-independent.
+
+- **`packages/xss-verifier` — click capability.** Added an optional `XSSBOT_CLICK_SELECTOR` env: after the page
+  settles, the bot clicks the first element matching that CSS selector via in-page `el.click()` (so it activates
+  `javascript:` links and submits `formaction` buttons without Playwright's auto-wait-for-navigation).
+  Backward-compatible (unset = the prior load-only behaviour); one new dataclass field + one env row + docstring.
+  README gains the env row and an "image naming convention (infra vs lab app)" note.
+- `markdown-renderer-javascript-uri-bypass` (**practitioner**): a wiki renders `[text](url)` into `<a href>` and
+  "sanitises" the href with a single-pass `re.sub(r"javascript:", "", url, flags=I)`. A literal TAB in the scheme
+  (`java<TAB>script:`) is not the substring `javascript:` (survives the strip) but the browser normalises it back
+  to `javascript:` on navigation. The admin bot reviews new pages and **clicks** the primary link
+  (`XSSBOT_CLICK_SELECTOR=a.wiki-link`), so the tab-smuggled URI runs and steals the non-HttpOnly `session`
+  cookie. Teaches href-context `javascript:` sinks, single-pass-strip failure modes, and scheme allow-listing as
+  the fix. Negative control (plain `javascript:`, no tab) → stripped to an inert relative href, **0 beacons**.
+- `formaction-xss-button-injection` (**practitioner**): a CMS renders a contributor draft **inside** the editor's
+  approve form (which carries an anti-CSRF token and has no `action`). The draft is allow-list sanitised with
+  **nh3** — scripts, event handlers and `javascript:` URIs (including a `javascript:` formaction) are all
+  stripped — but a CTA `<button>` may keep `formaction`/`formmethod`. The editor bot reviews the draft and
+  **clicks** the CTA (`XSSBOT_CLICK_SELECTOR=.draft button`); the formaction override submits the approve form
+  (CSRF token and all) to the collector. **Zero JavaScript** — a scriptless exfil, so `HttpOnly` (set here) and a
+  `script-src` CSP are irrelevant; `form-action` CSP is the matching defence. Negative control
+  (`<script>`+`<img onerror>`) → stripped by nh3, **0 beacons**.
+- Both reuse the batch-a shape (app/bot/collector, edge + `internal:true` backend on the fixed subnet,
+  `/internal/*` + admin routes firewalled by source-IP/cookie + BOT_KEY). Verified clean-room per lab: exploit
+  exit 0 (both `--target` and `$1`), flag == expected HMAC, **negative control 0 beacons**, posture OK ×3,
+  anti-bypass 403s, egress-drop, app 142–144 MB, no baked flag, **Trivy library + OS gates clean (both, incl.
+  nh3 0.2.20)**, drift-lint 37, prettier/format/catalog green. SOLUTIONs carry the CWE-79/OWASP-A03 citation.
+  `risk: low`. XSS 15/26 on main after this merge (`track-xss-f-framework` landed first, PR #20).
+
 ### track-xss-f-framework — three client-side framework template/selector-injection labs
 
 Framework-specific client-side sinks. Each vendors its **intentionally end-of-life** framework locally
