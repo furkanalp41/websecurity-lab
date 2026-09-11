@@ -725,7 +725,7 @@
         "slug": "markdown-renderer-javascript-uri-bypass",
         "title": "Markdown Renderer — javascript: URI Filter Bypass",
         "difficulty": "practitioner",
-        "description": "A wiki uses markdown-it 13 with a custom link sanitiser that removes matches of /javascript:/gi from any href. The single-pass regex fails on unicode whitespace, HTML entities, and tab characters embedded in the scheme. The admin bot reviews new wiki pages and clicks the primary link in each page.",
+        "description": "A wiki renders markdown links into <a href> and \"sanitises\" each URL by stripping the substring javascript: with a single-pass, case-insensitive regex. A control character embedded in the scheme (java<TAB>script:) is not matched by the regex, but the browser strips tab/newline/CR from a URL on navigation, so the href resolves back to javascript: and runs. The admin bot reviews new pages and clicks the primary link in each.",
         "objective": "Post a wiki page whose rendered link, when clicked by the admin bot, executes JS and exfiltrates the admin's session cookie to http://collector:9000/report.",
         "flag_hint": "OOB collector captures cookie; /solve validates the value matches the current admin session and returns the flag.",
         "skills_taught": [
@@ -734,15 +734,14 @@
           "href-context sanitiser bypass"
         ],
         "tech_stack": [
-          "Node 20",
-          "Express 4",
-          "markdown-it 13 with custom link_open sanitiser",
-          "SQLite 3",
-          "nginx 1.27",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "custom markdown link renderer with a single-pass javascript: strip (the flaw)",
+          "@websec-lab/xss-verifier headless-Chromium bot (click delivery)",
+          "stdlib OOB collector"
         ],
-        "inspired_by": "GitLab wiki markdown XSS class of bugs (CVE-2022-2185 pattern) and Discourse markdown pipeline advisories"
+        "inspired_by": "The GitLab/Discourse-class wiki-markdown javascript:-URI filter-bypass bugs (e.g. the CVE-2022-2185 markdown pipeline pattern), abstracted for local Docker with a Flask renderer, a Playwright admin bot that clicks review links, and an OOB collector"
       },
       {
         "slug": "postmessage-origin-startswith-bypass",
@@ -837,7 +836,7 @@
         "slug": "formaction-xss-button-injection",
         "title": "HTML5 formaction Attribute Injection",
         "difficulty": "practitioner",
-        "description": "A CMS lets you insert one <button> inside an existing <form> that has no action attribute (submitting to the current URL by default). The sanitiser allows <button> with a formaction attribute — a HTML5 override that changes the form's submit target.",
+        "description": "A CMS renders a contributor's draft HTML inside the editor's approve form, which carries an anti-CSRF token and has no action attribute (so it submits to the current URL by default). The draft is allow-list sanitised (nh3): scripts, event handlers and javascript: URIs are stripped, but a call-to-action <button> is permitted to keep the HTML5 formaction/formmethod attributes, which override where the enclosing form submits. The editor bot reviews each draft and clicks its CTA button.",
         "objective": "Use a formaction-bearing <button> to redirect the admin's next form submission to your attacker origin; capture the POST body (which includes the CSRF token and edited-page content) at the OOB collector.",
         "flag_hint": "OOB collector on port 9000 receives the POST body; /solve returns the flag when the current admin CSRF token value appears in a captured POST.",
         "skills_taught": [
@@ -846,15 +845,14 @@
           "exfil via form redirect (no JS required)"
         ],
         "tech_stack": [
-          "Node 20",
-          "NestJS 10",
-          "PostgreSQL 16",
-          "DOMPurify 2.4 (older permissive config)",
-          "nginx 1.27",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "nh3 0.2 allow-list sanitiser (permits <button formaction>) — the flaw",
+          "@websec-lab/xss-verifier headless-Chromium bot (click delivery)",
+          "stdlib OOB collector"
         ],
-        "inspired_by": "Michal Bentkowski / Cure53 formaction research and the DOMPurify hooks documentation examples"
+        "inspired_by": "Michał Bentkowski / Cure53 formaction research and the DOMPurify permissive-config examples, abstracted for local Docker with a Flask CMS, an nh3 allow-list sanitiser, a Playwright editor bot that clicks review buttons, and an OOB collector"
       },
       {
         "slug": "iframe-srcdoc-attribute-injection",

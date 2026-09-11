@@ -112,6 +112,29 @@ Three ways a partial defence fails. Workflow-authored, serially Docker-verified;
 
 All reuse the batch-a shape; `risk: low`. XSS 10/26 after merge.
 
+### batch/track-xss-g-interactive (this batch — interaction-gated sinks, practitioner)
+
+Two labs whose sink fires only when the **victim clicks**, plus the shared-bot change that
+makes them verifiable. Built by hand, serially Docker-verified; both Flask (re-platformed
+Node/Express, Node/NestJS — the sink is framework-independent).
+
+- **`packages/xss-verifier` — click capability.** New optional `XSSBOT_CLICK_SELECTOR` env:
+  after the page settles the bot clicks the first element matching that CSS selector via
+  in-page `el.click()`, activating `javascript:` links / submitting `formaction` buttons.
+  Backward-compatible (unset = the prior load-only behaviour).
+- `markdown-renderer-javascript-uri-bypass` (**practitioner**) — a wiki strips `javascript:`
+  from link hrefs with a single-pass regex; `java<TAB>script:` survives the strip but the
+  browser normalises the tab away on navigation, so the href runs when the admin bot clicks
+  the review link (`a.wiki-link`). Cookie theft. The fix is scheme allow-listing.
+- `formaction-xss-button-injection` (**practitioner**) — an nh3 allow-list correctly strips
+  scripts/handlers/`javascript:` but permits `<button formaction>`. Rendered inside the
+  editor's CSRF-token-bearing approve form and clicked by the bot (`.draft button`), the
+  formaction override submits that form to the collector. **Scriptless** CSRF-token exfil;
+  `form-action` CSP is the matching defence.
+
+Both reuse the batch-a shape; `risk: low`. XSS 12/26 after merge (15/26 once
+`track-xss-f-framework` also lands).
+
 ## Scheduled (from `data/catalog.json`)
 
 Reflected (done: 1) → stored → DOM → filter-ladder/sanitiser bypass →

