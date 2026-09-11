@@ -747,7 +747,7 @@
         "slug": "postmessage-origin-startswith-bypass",
         "title": "postMessage XSS via startsWith Origin Check",
         "difficulty": "practitioner",
-        "description": "A chat-widget host page embeds an iframe from https://widget.chatco.internal and handles messages with if (e.origin.startsWith('https://widget.chatco.internal')) target.innerHTML = e.data.html. The lab ships a wildcard DNS resolver so the attacker can register look-alike hostnames such as widget.chatco.internal.evil.lab that satisfy the naive prefix check.",
+        "description": "ChatCo embeds a chat widget in an iframe and its postMessage handler trusts the sender with a PREFIX origin check (e.origin.startsWith('http://widget-host')), then writes e.data via innerHTML. The legit widget-host sends only fixed safe content, so an attacker payload requires a LOOK-ALIKE origin (widget-host-evil, a docker network alias) that BOTH reflects the attacker msg AND prefix-matches; its frame postMessages an <img onerror> that runs in ChatCo's authenticated TOP-LEVEL page. ?widget= is HTML-escaped into the iframe src, so the flawed origin check is the only way in.",
         "objective": "Register a look-alike host under the lab's wildcard DNS, host a page that embeds the target and postMessages an HTML payload; when the admin bot visits your attacker URL, exfiltrate document.cookie to the OOB collector.",
         "flag_hint": "OOB collector receives cookie; /solve returns the flag on match.",
         "skills_taught": [
@@ -757,14 +757,14 @@
           "iframe-to-parent cross-origin comms"
         ],
         "tech_stack": [
-          "Node 20",
-          "Express 4 for both target and attacker vhosts",
-          "dnsmasq wildcard resolver",
-          "second nginx 1.27 vhost for the widget origin",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "stdlib chat-widget origin, Host-branched (legit widget-host sends fixed safe content; look-alike widget-host-evil reflects msg) as the postMessage sender",
+          "@websec-lab/xss-verifier headless-Chromium bot",
+          "stdlib OOB collector"
         ],
-        "inspired_by": "recurring postMessage bugs on major SaaS platforms 2022-2024 (Slack #H1-1234567 style, Grammarly, HackerOne #1073518)"
+        "inspired_by": "The canonical postMessage origin-validation bug class (naive startsWith/indexOf/regex origin checks; PortSwigger and Cure53 write-ups), abstracted for local Docker with a Flask host page, a look-alike widget origin via docker network aliases, a Playwright admin bot, and an OOB collector"
       },
       {
         "slug": "jquery-location-hash-selector",

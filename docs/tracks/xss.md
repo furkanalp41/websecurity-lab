@@ -168,6 +168,24 @@ Both reflected (queue delivery), reuse the batch-a shape; `risk: low`. Negative 
 direct `<script src>`) → 0 beacons; only the intended CSP gadget executes. XSS 17/26 after merge
 (`track-xss-f` + `track-xss-g` landed first).
 
+### batch/track-xss-i-trust (this batch — postMessage origin validation, practitioner)
+
+A client-side trust-boundary lab. Built by hand, Docker-verified; Flask (look-alike origin
+via docker network aliases instead of the catalog's wildcard DNS + nginx vhost).
+
+- `postmessage-origin-startswith-bypass` (**practitioner**) — a `postMessage` handler trusts
+  the sender via `e.origin.startsWith('http://widget-host')` (prefix, no delimiter) then
+  `innerHTML`s `e.data`. A look-alike origin `widget-host-evil` prefix-matches; a frame there
+  (embedded via the escaped `?widget=`) messages an `<img onerror>` that runs in the
+  authenticated top-level page. The legit `widget-host` sends fixed content, so the look-alike
+  is the only origin that both reflects a payload and passes the check. Fix: exact-match
+  origins + `textContent`. (Sink lands top-level, not a framed target, because `SameSite=Lax`
+  cookies are absent in cross-site iframes.)
+
+Reuses the batch-a shape; `risk: low`. Negative controls (notwidget rejected AND legit
+`widget-host` sends fixed content) → 0 beacons each. XSS 18/26 after merge
+(`track-xss-f`/`-g`/`-h` landed first).
+
 ## Scheduled (from `data/catalog.json`)
 
 Reflected (done: 1) → stored → DOM → filter-ladder/sanitiser bypass →
