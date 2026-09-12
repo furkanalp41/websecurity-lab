@@ -814,7 +814,7 @@
         "slug": "self-xss-csrf-profile-chain",
         "title": "Self-XSS Chained via CSRF",
         "difficulty": "practitioner",
-        "description": "A Laravel profile-bio field is stored HTML-escaped for other viewers but rendered raw when the owning user views their own profile — the classic self-XSS shrug. The profile-update endpoint accepts application/x-www-form-urlencoded and has no CSRF token because 'it's a low-severity self-XSS anyway'.",
+        "description": "A profile app renders the bio RAW on the owner's own /profile but ESCAPED on the public /u/<name> (classic self-XSS), and the bio-update is GET /profile/update?bio= with no CSRF token. An attacker page top-level-navigates the admin there (a cross-site GET carries the SameSite=Lax admin cookie), planting a self-XSS in the admin's bio; the redirect to /profile renders it raw in the admin's session and steals the non-HttpOnly cookie. Re-platformed to Flask (GET CSRF is the sound vector on HTTP+Lax).",
         "objective": "Host an attacker page that CSRF-submits a malicious bio for the admin account; when the admin bot next visits its own profile, the self-XSS executes and exfiltrates the admin's session cookie to the OOB collector.",
         "flag_hint": "OOB collector receives the cookie; /solve returns the flag when the captured value matches the live admin cookie.",
         "skills_taught": [
@@ -823,15 +823,15 @@
           "chaining separate low-severity bugs into critical impact"
         ],
         "tech_stack": [
-          "PHP 8.3",
-          "Laravel 11",
-          "MySQL 8",
-          "nginx 1.27",
-          "separate attacker.lab vhost",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "self-XSS bio (raw on own /profile, escaped on public /u/<name>) + CSRF-able GET /profile/update (no token)",
+          "stdlib attacker origin (meta-refresh CSRF page)",
+          "@websec-lab/xss-verifier headless-Chromium bot",
+          "stdlib OOB collector"
         ],
-        "inspired_by": "recurring 'we downgraded self-XSS then it became RCE' HackerOne narratives (e.g. Frans Rosén's writeups)"
+        "inspired_by": "The classic self-XSS + CSRF escalation chain (a self-only XSS made exploitable by CSRFing the victim's own settings), abstracted for local Docker with a Flask profile app, a mock attacker origin, a Playwright admin bot, and an OOB collector"
       },
       {
         "slug": "formaction-xss-button-injection",

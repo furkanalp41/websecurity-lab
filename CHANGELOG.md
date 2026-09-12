@@ -6,6 +6,29 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### track-xss-j-chains — self-XSS -> CSRF account-takeover chain (practitioner)
+
+The first **multi-step chain** lab. Built by hand, Docker-verified. Flask (re-platformed from Laravel/MySQL).
+(The trust-boundary group's mXSS + DOMPurify labs are **deferred**: I prototyped DOMPurify 3.0.5 in real
+headless Chromium and 0 of 15 historical mXSS/nesting/namespace bypass candidates fired — 3.0.5 is hardened.
+Those need a CONFIRMED version-specific bypass and will be built prototype-first, not shipped silently-broken.)
+
+- `self-xss-csrf-profile-chain` (**practitioner**): a bio rendered RAW on the owner's own `/profile` but
+  ESCAPED on the public `/u/<name>` (self-XSS), plus `GET /profile/update?bio=` with **no CSRF token**. An
+  attacker page top-level-navigates the admin to the update — a cross-site GET carries the admin's
+  `SameSite=Lax` cookie — planting the self-XSS in the admin's bio; the 302 to `/profile` renders it raw in
+  the admin's session and steals the non-HttpOnly cookie. Teaches: self-XSS is exploitable via a token-less
+  state change; `SameSite=Lax` is sent on a top-level GET navigation but NOT a cross-site POST.
+- **Sound deviation:** the catalog CSRFs a POST form; on this HTTP/Lax lab a cross-site POST would not carry
+  the Lax cookie, so the update is exposed over GET and driven by a top-level navigation (mock attacker
+  origin's `<meta refresh>`). Documented in SOLUTION.
+- 4 services (app + stdlib attacker meta-refresh origin + bot + collector); egress-drop backend on the fixed
+  subnet; `/internal/*` + `/profile` firewalled. Verified clean-room: exploit exit 0 (both `--target` and
+  `$1`), flag == expected HMAC, **integrity** (`/profile` 403 for the attacker, `/u/admin` escaped -> self-XSS
+  is self-only, so the chain is necessary), posture OK, app 142 MB, no baked flag, **Trivy library + OS gates
+  clean** (deps identical to csp-jsonp), drift-lint 44, prettier/catalog green. SOLUTION carries the
+  CWE-79/CWE-352/OWASP-A03 citation. `risk: low`. XSS 19/26 after merge.
+
 ### track-xss-i-trust — postMessage origin-validation XSS (practitioner)
 
 A client-side trust-boundary lab: a `window.postMessage` handler that trusts the sender with a PREFIX origin

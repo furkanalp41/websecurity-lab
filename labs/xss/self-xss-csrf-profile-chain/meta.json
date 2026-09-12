@@ -1,0 +1,48 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "self-xss-csrf-profile-chain",
+  "title": "Self-XSS Chained via CSRF",
+  "track": "xss",
+  "difficulty": "practitioner",
+  "estimated_minutes": 40,
+  "max_lifetime_minutes": 60,
+  "learning_objectives": [
+    "Understand why 'self-XSS' is dismissed as low-severity — a bio rendered raw only on the owner's own /profile can only run script in your own session",
+    "Turn self-XSS into account takeover by chaining CSRF: if the state-changing endpoint that sets the bio has no CSRF token, an attacker page can plant the payload in the VICTIM's profile",
+    "Recognise that a state change exposed over GET is CSRF-able by a top-level navigation, and that SameSite=Lax cookies ARE sent on cross-site top-level GET navigations (but NOT on cross-site POST) — so the GET update carries the admin's session",
+    "Chain the two: CSRF plants the self-XSS in the admin's bio, the redirect renders it raw in the admin's own session, and it exfiltrates the non-HttpOnly cookie",
+    "Apply the fixes: a CSRF token (or SameSite=Strict) on the update, output-encode the bio everywhere (not just for other viewers), and stop treating self-XSS as unexploitable"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-79", "CWE-352"],
+  "prerequisites": ["reflected-xss-search-noescape"],
+  "flag_hint": "The bio is raw on your own /profile but escaped on /u/<name>, and /profile/update?bio= is GET with no CSRF token. POST /report an attacker URL (http://attacker:8080/go?to=<url-encoded http://app:8080/profile/update?bio=<img src=x onerror=...>>) — the bot's top-level GET nav carries its Lax admin cookie, sets the bio, redirects to /profile where the self-XSS runs and beacons document.cookie. Read /oob/received, POST /solve {\"c\":\"<32 hex>\"}.",
+  "tech_stack": [
+    "Python 3.12",
+    "Flask 3.1",
+    "gunicorn 23",
+    "self-XSS bio (raw on own /profile, escaped on public /u/<name>) + CSRF-able GET /profile/update (no token)",
+    "stdlib attacker origin (meta-refresh CSRF page)",
+    "@websec-lab/xss-verifier headless-Chromium bot",
+    "stdlib OOB collector"
+  ],
+  "tags": [
+    "xss",
+    "self-xss",
+    "csrf",
+    "chain",
+    "same-site-cookie",
+    "get-state-change",
+    "account-takeover",
+    "cookie-theft",
+    "oob-exfil",
+    "victim-bot",
+    "cwe-79",
+    "cwe-352"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "The classic self-XSS + CSRF escalation chain (a self-only XSS made exploitable by CSRFing the victim's own settings), abstracted for local Docker with a Flask profile app, a mock attacker origin, a Playwright admin bot, and an OOB collector"
+}
