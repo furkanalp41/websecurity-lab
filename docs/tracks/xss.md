@@ -186,6 +186,22 @@ Reuses the batch-a shape; `risk: low`. Negative controls (notwidget rejected AND
 `widget-host` sends fixed content) → 0 beacons each. XSS 18/26 after merge
 (`track-xss-f`/`-g`/`-h` landed first).
 
+### batch/track-xss-j-chains (this batch — multi-step chains, practitioner)
+
+The first multi-step chain. Built by hand, Docker-verified; Flask (re-platformed Laravel/MySQL).
+(mXSS/DOMPurify deferred — DOMPurify 3.0.5 resisted all 15 historical bypass candidates in a live
+Chromium prototype; they need a confirmed version-specific payload.)
+
+- `self-xss-csrf-profile-chain` (**practitioner**) — a bio raw on the owner's own `/profile` but escaped
+  on `/u/<name>` (self-XSS), plus a token-less `GET /profile/update`. An attacker page top-level-navigates
+  the admin to the update (a cross-site GET carries the `SameSite=Lax` cookie), planting the self-XSS; the
+  redirect to `/profile` runs it in the admin's session -> cookie theft. Fix: CSRF token / `SameSite=Strict`
+  - encode the bio everywhere. (GET-CSRF is the sound vector on HTTP+Lax; a cross-site POST wouldn't carry
+    the Lax cookie.)
+
+Reuses the batch-a shape; `risk: low`. Integrity: `/profile` 403 for the attacker, `/u/admin` escaped ->
+the chain is necessary. XSS 19/26 after merge.
+
 ## Scheduled (from `data/catalog.json`)
 
 Reflected (done: 1) → stored → DOM → filter-ladder/sanitiser bypass →
