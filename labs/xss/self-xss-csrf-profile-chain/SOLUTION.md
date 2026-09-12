@@ -81,7 +81,7 @@ POST /solve   {"c":"<32 hex>"}      →  FLAG{…}
 `tests/exploit.py` automates this. Its integrity checks prove the chain is
 **necessary**: `/profile` (the raw-render page) is **403** for the attacker, and
 `/u/admin` **escapes** the bio — so the payload cannot be viewed into execution any
-other way; only the CSRF-planted bio, rendered in the admin's own session, runs.
+other way; only the CSRF-planted bio, rendered in the admin's own session, runs. `/report` also **rejects on-app URLs**, so the payload cannot be delivered by queuing the app's own `/profile/update` directly — the cross-site top-level GET (which is what carries the `SameSite=Lax` cookie) is mandatory.
 The default bio is benign, so without the CSRF step the admin's `/profile` carries
 no payload and the collector stays empty.
 

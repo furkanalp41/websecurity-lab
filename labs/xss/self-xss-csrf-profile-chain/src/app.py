@@ -20,6 +20,7 @@ import html
 import ipaddress
 import json
 import os
+import urllib.parse
 import urllib.request
 
 from flask import Flask, Response, redirect, request
@@ -114,6 +115,14 @@ def report() -> Response:
     url = url.strip()
     if not url:
         return Response(json.dumps({"ok": False, "error": "url required"}),
+                        mimetype="application/json", status=400)
+    # Report EXTERNAL pages only: reject URLs pointing back at this app, so the
+    # payload must be delivered cross-site (which is what exercises the
+    # SameSite=Lax cross-site-GET-CSRF lesson) rather than by queuing the app's
+    # own /profile/update directly.
+    host = (urllib.parse.urlparse(url).hostname or "").lower()
+    if host in ("app", "localhost", "127.0.0.1", "0.0.0.0", ""):
+        return Response(json.dumps({"ok": False, "error": "report an external page, not one on this site"}),
                         mimetype="application/json", status=400)
     _queue.append(url)
     return Response(json.dumps({"ok": True, "queued": url}), mimetype="application/json")
