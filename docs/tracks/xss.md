@@ -202,6 +202,19 @@ Chromium prototype; they need a confirmed version-specific payload.)
 Reuses the batch-a shape; `risk: low`. Integrity: `/profile` 403 for the attacker, `/u/admin` escaped ->
 the chain is necessary. XSS 19/26 after merge.
 
+### batch/track-xss-k-cssinj (this batch — CSS-injection data exfil, expert)
+
+A scriptless exfil lab. Built by hand, prototyped + Docker-verified live; Flask (re-platformed Django/PG).
+
+- `css-injection-attr-selector-token-exfil` (**expert**) — the staff `/preview` renders an attacker
+  stylesheet under CSP `script-src 'none'` next to a CSRF token in an `<input value>`. CSS attribute
+  selectors (`[value^="prefix"]{background:url(...)}`) leak the token one hex char per round via
+  background-image callbacks; the leaked token authorises `/admin/action` → flag. Fix: don't render untrusted
+  CSS beside secrets; rotate tokens. (CSS reads attribute values only, never text nodes.)
+
+Reuses the batch-a shape; `risk: low`. Integrity: `/preview` 403, CSP `script-src 'none'` (CSS is the only
+exfil), leak is char-by-char. XSS 20/26 after merge.
+
 ## Scheduled (from `data/catalog.json`)
 
 Reflected (done: 1) → stored → DOM → filter-ladder/sanitiser bypass →

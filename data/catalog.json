@@ -1041,7 +1041,7 @@
         "slug": "css-injection-attr-selector-token-exfil",
         "title": "CSS Injection — Exfiltrating a CSRF Token via Attribute Selectors",
         "difficulty": "expert",
-        "description": "A newsletter-preview page accepts arbitrary user-supplied stylesheets via <link rel=stylesheet href=...> whose href passes a permissive sanitiser. Inline scripts and other tags are blocked by a strict CSP. A hidden <input name='csrf' value='...'> lives in the same document.",
+        "description": "A newsletter-preview page renders an attacker-supplied stylesheet under a strict CSP (script-src 'none' — no JavaScript at all) next to a CSRF token held in an <input value> attribute. With script blocked, CSS is the only exfil: attribute selectors (input[name=csrf][value^=\"prefix\"]{background:url(...)}) fire a background-image request only when the token starts with a prefix, leaking it one hex character per round to the collector. The leaked token authorises POST /admin/action, then /solve returns the flag. /preview is admin-only so the token is never directly readable.",
         "objective": "Using only CSS attribute selectors and background-image callbacks, exfiltrate the admin's CSRF token character-by-character to the OOB collector; then submit a state-changing request bearing the leaked token so the checker validates the completed chain.",
         "flag_hint": "/solve requires a POST to /admin/action containing the leaked CSRF token; only after that POST succeeds does /solve return the flag.",
         "skills_taught": [
@@ -1052,14 +1052,14 @@
         ],
         "tech_stack": [
           "Python 3.12",
-          "Django 5.0",
-          "PostgreSQL 16",
-          "strict CSP",
-          "nginx 1.27",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Flask 3.1",
+          "gunicorn 23",
+          "strict CSP (script-src 'none') on the preview page + attacker-hosted same-origin stylesheet (POST /styles -> /styles.css, no-store)",
+          "CSRF token in an <input value> attribute (the CSS attribute-selector exfil target)",
+          "@websec-lab/xss-verifier headless-Chromium bot",
+          "stdlib OOB collector"
         ],
-        "inspired_by": "Pepe Vila / Sebastian Lekies scriptless-attack research and the HackerOne 'CSS Injection Primitives' 2023 writeup"
+        "inspired_by": "The CSS-attribute-selector data-exfiltration technique (Pepe Vila / Masato Kinugawa CSS-injection research, LiveOverflow's char-by-char CSS leak), abstracted for local Docker with a Flask preview app under strict script-src, a same-origin attacker stylesheet, a Playwright admin bot, and an OOB collector"
       },
       {
         "slug": "dangling-markup-csrf-token-exfil",
