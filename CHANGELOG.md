@@ -6,6 +6,29 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### track-xss-k-cssinj — CSS-injection CSRF-token exfiltration (expert)
+
+A scriptless data-exfil lab: CSS attribute selectors leak a secret under a script-blocking CSP. Built by hand,
+prototyped and Docker-verified live in the bot's Chromium. Flask (re-platformed from Django/PostgreSQL).
+
+- `css-injection-attr-selector-token-exfil` (**expert**): the staff `/preview` renders an attacker-supplied
+  stylesheet under CSP `script-src 'none'` (no JavaScript at all) next to a CSRF token in an `<input value>`
+  attribute. With script impossible, CSS is the only exfil: `input[name="csrf"][value^="prefix"]{background:url(...)}`
+  fires a background-image callback only when the token starts with a prefix, leaking it one hex character per
+  round to the collector. The leaked token authorises `POST /admin/action`, then `/solve` returns the flag.
+  Teaches CSS injection as a genuine exfil channel (not "just styling"); the fix is not rendering untrusted CSS
+  beside secrets + rotating tokens.
+- Verified live: the attribute-selector background-image exfil fires in the bot's Chromium; leaked all 8 chars
+  sequentially, flag == expected HMAC. **Integrity/technique-necessity:** `/preview` 403 for the attacker (token
+  not directly readable); CSP `script-src 'none'` asserted (script exfil impossible → CSS is the only channel);
+  `/admin/action` rejects a wrong token; the leak is inherently character-by-character (one bot round per
+  position, no coarser single-request shortcut).
+- 3 services (app + bot + collector; the attacker stylesheet is hosted same-origin via `POST /styles` →
+  `/styles.css` `no-store`, so the exploit drives per-round updates through the published app port). Token
+  shortened to 8 hex chars to fit the CI 60s exploit budget. app 142 MB, no baked flag, **Trivy library + OS
+  gates clean** (deps identical to csp-jsonp), drift-lint 45, prettier/catalog green. CWE-79/CWE-201/OWASP-A03.
+  `risk: low`. XSS 20/26 after merge.
+
 ### track-xss-j-chains — self-XSS -> CSRF account-takeover chain (practitioner)
 
 The first **multi-step chain** lab. Built by hand, Docker-verified. Flask (re-platformed from Laravel/MySQL).
